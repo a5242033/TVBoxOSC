@@ -59,30 +59,30 @@ jobs:
           ac = 'app/src/main/java/com/github/tvbox/osc/api/ApiConfig.java'
           helper = '''    private static final java.util.LinkedHashSet<String> failoverTried = new java.util.LinkedHashSet<String>();
 
-      private boolean tryFailover(LoadConfigCallback callback, Activity activity) {
-          try {
-              String current = Hawk.get(HawkConfig.API_URL, "");
-              java.util.ArrayList<String> history = Hawk.get(HawkConfig.API_HISTORY, new java.util.ArrayList<String>());
-              for (String h : history) {
-                  String u = h;
-                  int sp = h.indexOf('\\t');
-                  if (sp >= 0) u = h.substring(sp + 1);
-                  u = u.trim();
-                  if (u.isEmpty() || u.equals(current) || failoverTried.contains(u)) continue;
-                  failoverTried.add(u);
-                  LOG.i("echo-config failover " + current + " -> " + u);
-                  Hawk.put(HawkConfig.API_URL, u);
-                  loadConfig(false, callback, activity);
-                  return true;
+              private boolean tryFailover(LoadConfigCallback callback, Activity activity) {
+                  try {
+                      String current = Hawk.get(HawkConfig.API_URL, "");
+                      java.util.ArrayList<String> history = Hawk.get(HawkConfig.API_HISTORY, new java.util.ArrayList<String>());
+                      for (String h : history) {
+                          String u = h;
+                          int sp = h.indexOf('\\t');
+                          if (sp >= 0) u = h.substring(sp + 1);
+                          u = u.trim();
+                          if (u.isEmpty() || u.equals(current) || failoverTried.contains(u)) continue;
+                          failoverTried.add(u);
+                          LOG.i("echo-config failover " + current + " -> " + u);
+                          Hawk.put(HawkConfig.API_URL, u);
+                          loadConfig(false, callback, activity);
+                          return true;
+                      }
+                  } catch (Throwable th) {
+                      th.printStackTrace();
+                  }
+                  failoverTried.clear();
+                  return false;
               }
-          } catch (Throwable th) {
-              th.printStackTrace();
-          }
-          failoverTried.clear();
-          return false;
-      }
 
-      private boolean switchApiCollectionIfNeeded(String apiUrl, String jsonStr) {'''
+              private boolean switchApiCollectionIfNeeded(String apiUrl, String jsonStr) {'''
           patch(ac, '    private boolean switchApiCollectionIfNeeded(String apiUrl, String jsonStr) {', helper)
           patch(ac, 'callback.error("拉取配置失败\\n" + error);', 'if (tryFailover(callback, activity)) return;\n                callback.error("拉取配置失败\\n" + error);')
           patch(ac, 'callback.error("配置解析失败");', 'if (tryFailover(callback, activity)) return;\n                    callback.error("配置解析失败");')
