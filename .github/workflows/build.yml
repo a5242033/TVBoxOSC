@@ -1,0 +1,121 @@
+name: Build
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Prepare Build Tag
+        run: |
+          echo "tag=$(date +%Y%m%d-%H%M)" >> $GITHUB_ENV
+          echo "commitS=$(date +%Y%m%d%H%M)" >> $GITHUB_ENV
+
+      - name: Checkout Source Code
+        run: |
+          git clone --depth 1 https://github.com/q215613905/TVBoxOS TVBoxOSC
+
+      - name: Extra Modify
+        working-directory: TVBoxOSC
+        run: |
+          echo '修改VersionName'
+          sed -i "/versionName/s#[0-9a-zA-Z_\.\'\"-]\+\$#\'${{ env.tag }}\'#" app/build.gradle
+          sed -i "/android:text=/s#=\"#=\"${{ env.tag }}\\\\n\\\\n#" app/src/main/res/layout/dialog_about.xml
+          echo 'crosswalk源，防挂'
+          if grep -q 'crosswalk' build.gradle; then
+            sed -i "/crosswalk/a\        maven { url 'https://j4uq.github.io/crosswalk/releases/crosswalk/android/maven2' }" build.gradle
+          else
+            sed -i "/jitpack.io/a\        maven { url 'https://j4uq.github.io/crosswalk/releases/crosswalk/android/maven2' }" build.gradle
+          fi
+          echo '注入默认配置地址（开箱自带，无需手动填）'
+          python3 - <<'PYEOF'
+          p = 'app/src/main/java/com/github/tvbox/osc/base/App.java'
+          s = open(p, encoding='utf-8').read()
+          anchor = 'Hawk.init(this).build();'
+          block = '''Hawk.init(this).build();
+                  String defApi = Hawk.get(HawkConfig.API_URL, "");
+                  if (defApi == null || defApi.isEmpty()) {
+                      Hawk.put(HawkConfig.API_URL, "https://qist.wyfc.qzz.io/jsm.json");
+                      java.util.ArrayList<String> defHistory = new java.util.ArrayList<>();
+                      defHistory.add("https://qist.wyfc.qzz.io/jsm.json");
+                      defHistory.add("http://xhztv.top/4k.json");
+                      Hawk.put(HawkConfig.API_HISTORY, defHistory);
+                  }'''
+          assert anchor in s, 'anchor not found'
+          s = s.replace(anchor, block, 1)
+          open(p, 'w', encoding='utf-8').write(s)
+          print('default config patched')
+          PYEOF
+
+      - name: Setup Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.8'
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install lxml ujson pyquery requests jsonpath cachetools pycryptodome beautifulsoup4
+
+      - name: Modify pyramid——build.gradle
+        working-directory: TVBoxOSC
+        run: |
+          sed -i '/buildPython.*python.exe/d' pyramid/build.gradle
+
+      - name: Setup Python local.properties
+        working-directory: TVBoxOSC
+        run: echo "" > local.properties
+
+      - name: Release Apk Sign
+        working-directory: TVBoxOSC
+        run: |
+          signingConfigs='ICAgIHNpZ25pbmdDb25maWdzIHtcCiAgICAgICAgaWYgKHByb2plY3QuaGFzUHJvcGVydHkoIlJFTEVBU0VfU1RPUkVfRklMRSIpKSB7XAogICAgICAgICAgICBteUNvbmZpZyB7XAogICAgICAgICAgICAgICAgc3RvcmVGaWxlIGZpbGUoUkVMRUFTRV9TVE9SRV9GSUxFKVwKICAgICAgICAgICAgICAgIHN0b3JlUGFzc3dvcmQgUkVMRUFTRV9TVE9SRV9QQVNTV09SRFwKICAgICAgICAgICAgICAgIGtleUFsaWFzIFJFTEVBU0VfS0VZX0FMSUFTXAogICAgICAgICAgICAgICAga2V5UGFzc3dvcmQgUkVMRUFTRV9LRVlfUEFTU1dPUkRcCiAgICAgICAgICAgICAgICB2MVNpZ25pbmdFbmFibGVkIHRydWVcCiAgICAgICAgICAgICAgICB2MlNpZ25pbmdFbmFibGVkIHRydWVcCiAgICAgICAgICAgICAgICBlbmFibGVWM1NpZ25pbmcgPSB0cnVlXAogICAgICAgICAgICAgICAgZW5hYmxlVjRTaWduaW5nID0gdHJ1ZVwKICAgICAgICAgICAgfVwKICAgICAgICB9XAogICAgfVwKXA=='
+          signingConfig='ICAgICAgICAgICAgaWYgKHByb2plY3QuaGFzUHJvcGVydHkoIlJFTEVBU0VfU1RPUkVfRklMRSIpKSB7XAogICAgICAgICAgICAgICAgc2lnbmluZ0NvbmZpZyBzaWduaW5nQ29uZmlncy5teUNvbmZpZ1wKICAgICAgICAgICAgfVwK'
+          signingConfigs="$(echo "$signingConfigs" |base64 -d )"
+          signingConfig="$(echo "$signingConfig" |base64 -d )"
+          sed -i -e "/defaultConfig {/i\\$signingConfigs " -e "/debug {/a\\$signingConfig " -e "/release {/a\\$signingConfig " app/build.gradle
+          cp -f ${{ github.workspace }}/.github/workflows/TVBoxOSC.jks app/TVBoxOSC.jks
+          sed -i '$a\RELEASE_STORE_FILE=./TVBoxOSC.jks'     ./gradle.properties
+          sed -i '$a\RELEASE_KEY_ALIAS=TVBoxOSC'            ./gradle.properties
+          sed -i '$a\RELEASE_STORE_PASSWORD=TVBoxOSC'       ./gradle.properties
+          sed -i '$a\RELEASE_KEY_PASSWORD=TVBoxOSC'         ./gradle.properties
+
+      - uses: gradle/actions/setup-gradle@v6.2.0
+
+      - name: Build With Gradle
+        working-directory: TVBoxOSC
+        run: |
+          chmod +x gradlew
+          ./gradlew assemblerelease --build-cache --parallel --daemon --warning-mode all
+
+      - name: Prepare App
+        working-directory: TVBoxOSC
+        run: |
+          rm -rf apk/
+          mkdir -p apk/
+          i=0
+          for file in `find ~ -name "*release*.apk" -print`; do
+            i=$((i+1))
+            mv "$file" "apk/TVBox_自用版_${{ env.tag }}_${i}.apk"
+          done
+
+      - name: Upload App To Artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: TVBox-自用版
+          path: |
+            TVBoxOSC/apk/*
+
+      - name: Release and Upload Assets
+        uses: ncipollo/release-action@v1
+        with:
+          name: ${{ env.tag }}
+          tag: ${{ env.tag }}
+          body: "自用版：内置默认配置地址（jsm.json + 4k.json历史），安装即用"
+          allowUpdates: true
+          artifacts: |
+            TVBoxOSC/apk/*.apk
