@@ -34,11 +34,15 @@ jobs:
           else
             sed -i "/jitpack.io/a\        maven { url 'https://j4uq.github.io/crosswalk/releases/crosswalk/android/maven2' }" build.gradle
           fi
-          echo '注入默认配置地址（开箱自带，无需手动填）'
+          echo '注入默认配置(多源) + 自动故障切换'
           python3 - <<'PYEOF'
-          p = 'app/src/main/java/com/github/tvbox/osc/base/App.java'
-          s = open(p, encoding='utf-8').read()
-          anchor = 'Hawk.init(this).build();'
+          import re
+          def patch(path, old, new, count=1):
+              s = open(path, encoding='utf-8').read()
+              assert old in s, 'anchor not found: %r in %s' % (old[:60], path)
+              s = s.replace(old, new, count)
+              open(path, 'w', encoding='utf-8').write(s)
+          app = 'app/src/main/java/com/github/tvbox/osc/base/App.java'
           block = '''Hawk.init(this).build();
                   String defApi = Hawk.get(HawkConfig.API_URL, "");
                   if (defApi == null || defApi.isEmpty()) {
@@ -46,12 +50,44 @@ jobs:
                       java.util.ArrayList<String> defHistory = new java.util.ArrayList<>();
                       defHistory.add("https://qist.wyfc.qzz.io/jsm.json");
                       defHistory.add("http://xhztv.top/4k.json");
+                      defHistory.add("http://47.96.82.41:5188/rose/18/xgg.json");
+                      defHistory.add("https://raw.liucn.cc/box/m.json");
+                      defHistory.add("https://6800.kstore.vip/fish.json");
                       Hawk.put(HawkConfig.API_HISTORY, defHistory);
                   }'''
-          assert anchor in s, 'anchor not found'
-          s = s.replace(anchor, block, 1)
-          open(p, 'w', encoding='utf-8').write(s)
-          print('default config patched')
+          patch(app, 'Hawk.init(this).build();', block)
+          ac = 'app/src/main/java/com/github/tvbox/osc/api/ApiConfig.java'
+          helper = '''    private static final java.util.LinkedHashSet<String> failoverTried = new java.util.LinkedHashSet<String>();
+
+      private boolean tryFailover(LoadConfigCallback callback, Activity activity) {
+          try {
+              String current = Hawk.get(HawkConfig.API_URL, "");
+              java.util.ArrayList<String> history = Hawk.get(HawkConfig.API_HISTORY, new java.util.ArrayList<String>());
+              for (String h : history) {
+                  String u = h;
+                  int sp = h.indexOf('\\t');
+                  if (sp >= 0) u = h.substring(sp + 1);
+                  u = u.trim();
+                  if (u.isEmpty() || u.equals(current) || failoverTried.contains(u)) continue;
+                  failoverTried.add(u);
+                  LOG.i("echo-config failover " + current + " -> " + u);
+                  Hawk.put(HawkConfig.API_URL, u);
+                  loadConfig(false, callback, activity);
+                  return true;
+              }
+          } catch (Throwable th) {
+              th.printStackTrace();
+          }
+          failoverTried.clear();
+          return false;
+      }
+
+      private boolean switchApiCollectionIfNeeded(String apiUrl, String jsonStr) {'''
+          patch(ac, '    private boolean switchApiCollectionIfNeeded(String apiUrl, String jsonStr) {', helper)
+          patch(ac, 'callback.error("拉取配置失败\\n" + error);', 'if (tryFailover(callback, activity)) return;\n                callback.error("拉取配置失败\\n" + error);')
+          patch(ac, 'callback.error("配置解析失败");', 'if (tryFailover(callback, activity)) return;\n                    callback.error("配置解析失败");')
+          patch(ac, 'callback.success();', 'failoverTried.clear(); callback.success();', count=0)
+          print('patched: default multi-source + auto failover')
           PYEOF
 
       - name: Setup Python
@@ -103,13 +139,13 @@ jobs:
           i=0
           for file in `find ~ -name "*release*.apk" -print`; do
             i=$((i+1))
-            mv "$file" "apk/TVBox_自用版_${{ env.tag }}_${i}.apk"
+            mv "$file" "apk/TVBox_${{ env.tag }}_${i}.apk"
           done
 
       - name: Upload App To Artifact
         uses: actions/upload-artifact@v7
         with:
-          name: TVBox-自用版
+          name: TVBox-build
           path: |
             TVBoxOSC/apk/*
 
@@ -118,7 +154,7 @@ jobs:
         with:
           name: ${{ env.tag }}
           tag: ${{ env.tag }}
-          body: "自用版：内置默认配置地址（jsm.json + 4k.json历史），安装即用"
+          body: "自用版：内置5条配置源 + 自动故障切换"
           allowUpdates: true
           artifacts: |
             TVBoxOSC/apk/*.apk
