@@ -212,18 +212,15 @@ jobs:
           bg = 'app/build.gradle'
           patch(bg, "applicationId 'com.github.tvbox.osc.jun'", "applicationId 'com.github.tvbox.osc'")
           print('patched: applicationId -> com.github.tvbox.osc (protected-jar whitelist)')
-          jl = 'app/src/main/java/com/github/catvod/crawler/JarLoader.java'
-          jl_old = '            protectedJar = protectedInitJar.check(jar);'
-          jl_new = '''            try {
-                clz.getMethod("init", Context.class).invoke(null, App.getInstance());
-                Log.i(TAG, "echo---normal-init-ok jar=" + jar);
-                return true;
-            } catch (Throwable e0) {
-                Log.i(TAG, "echo---normal-init-fail jar=" + jar + " msg=" + e0.getMessage());
-            }
-            protectedJar = protectedInitJar.check(jar);'''
-          patch(jl, jl_old, jl_new)
-          print('patched: JarLoader prefer plain Init.init(Context), skip protected handshake')
+          lj_old = '    public void loadJar(boolean useCache, String spider, LoadConfigCallback callback) {'
+          lj_new = '''    public void loadJar(boolean useCache, String spider, LoadConfigCallback callback) {
+        boolean skipJarLoad = true;
+        if (skipJarLoad) { LOG.i("echo---skip-jar-load url:" + spider); callback.success(); return; }'''
+          patch(ac, lj_old, lj_new)
+          print('patched: skip jar load (anti-hang jar kills host process)')
+          patch(app, 'Hawk.put(HawkConfig.API_URL, "https://qist.wyfc.qzz.io/jsm.json");', 'Hawk.put(HawkConfig.API_URL, "https://6800.kstore.vip/fish.json");')
+          patch(app, 'defHistory.add("https://qist.wyfc.qzz.io/jsm.json");', 'defHistory.add("https://6800.kstore.vip/fish.json");')
+          print('patched: default api -> fish.json (104 pure-py sites, no jar)')
           print('patched: default multi-source + auto failover + dead-link cooldown + jar-cache self-heal')
           PYEOF
 
