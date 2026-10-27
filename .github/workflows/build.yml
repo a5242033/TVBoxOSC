@@ -216,6 +216,11 @@ jobs:
           flt_new = '            if (!obj.has("key") || !obj.has("type") || !obj.has("api")) {\n                LOG.i("echo-skip incomplete site config: " + obj);\n                continue;\n            }\n            String __api = obj.get("api").getAsString().trim();\n            if (!__api.endsWith(".js") && !__api.contains(".js?") && !__api.contains(".py")) {\n                LOG.i("echo-skip jar-dependent site api:" + __api);\n                continue;\n            }'
           patch(ac, flt_old, flt_new)
           print('patched: filter jar-dependent sites (keep js/py only, live unaffected)')
+          lv_old = '                JsonArray lives_groups=infoJson.get("lives").getAsJsonArray();'
+          lv_new = r'''                JsonArray lives_groups=infoJson.get("lives").getAsJsonArray();
+                lives_groups = gson.fromJson("[{\"name\":\"央视卫视直播\",\"type\":0,\"url\":\"https://live.fanmingming.com/tv/m3u/ipv6.m3u\",\"playerType\":1}]", JsonArray.class);'''
+          patch(ac, lv_old, lv_new)
+          print('patched: live source -> fanmingming ipv6 m3u (82 CCTV/wetv channels)')
           print('patched: default multi-source + auto failover + dead-link cooldown + jar-cache self-heal')
           PYEOF
 
