@@ -438,6 +438,46 @@ jobs:
           lp2_new = '            OkGo.<String>get(__proxyUrl.startsWith("http://127.0.0.1") ? __proxyUrl : "http://127.0.0.1:9978/proxy?do=live&type=txt&ext=" + Base64.encodeToString(url.getBytes(), Base64.DEFAULT | Base64.URL_SAFE | Base64.NO_WRAP)).execute(new AbsCallback<String>() {'
           patch(lp, lp2_old, lp2_new)
           print('patched: live txt fetch via local proxy (multi-URL fallback)')
+          ogh = 'app/src/main/java/com/github/tvbox/osc/util/OkGoHelper.java'
+          okd = 'app/src/main/java/com/github/catvod/net/OkDns.java'
+          okh = 'app/src/main/java/com/github/catvod/net/OkHttp.java'
+          dn_m_old = '    static class CustomDns implements Dns {'
+          dn_m_new = '''    public static volatile boolean __echoDohOn = false;
+              public static java.util.List<java.net.InetAddress> __v4First(java.util.List<java.net.InetAddress> src) {
+                  if (src == null || src.size() < 2) return src;
+                  java.util.List<java.net.InetAddress> v4 = new java.util.ArrayList<java.net.InetAddress>();
+                  java.util.List<java.net.InetAddress> v6 = new java.util.ArrayList<java.net.InetAddress>();
+                  for (java.net.InetAddress a : src) {
+                      if (a instanceof java.net.Inet6Address) v6.add(a);
+                      else v4.add(a);
+                  }
+                  if (v4.isEmpty() || v6.isEmpty()) return src;
+                  v4.addAll(v6);
+                  return v4;
+              }
+
+              static class CustomDns implements Dns {'''
+          patch(ogh, dn_m_old, dn_m_new)
+          dn_b_old = '        dnsOverHttps = new DnsOverHttps.Builder().client(dohClient).url(dohUrl.isEmpty() ? null : HttpUrl.get(dohUrl)).bootstrapDnsHosts((ips!=null && !dohUrl.equals("https://doh.pub/dns-query"))?DohIps(ips):null).build();'
+          dn_b_new = '''        __echoDohOn = !dohUrl.isEmpty();
+              if (!__echoDohOn) {
+                  android.util.Log.i("OkGoHelper", "echo-doh off -> system dns + ipv4 first");
+              }
+              dnsOverHttps = new DnsOverHttps.Builder().client(dohClient).url(dohUrl.isEmpty() ? null : HttpUrl.get(dohUrl)).bootstrapDnsHosts((ips!=null && !dohUrl.equals("https://doh.pub/dns-query"))?DohIps(ips):null).build();'''
+          patch(ogh, dn_b_old, dn_b_new)
+          dn_l_old = '                Dns dns = dnsOverHttps != null ? dnsOverHttps : Dns.SYSTEM;\n                return  dns.lookup(hostname);'
+          dn_l_new = '                Dns dns = (dnsOverHttps != null && __echoDohOn) ? dnsOverHttps : Dns.SYSTEM;\n                return  OkGoHelper.__v4First(dns.lookup(hostname));'
+          patch(ogh, dn_l_old, dn_l_new)
+          dn_c_old = '        builder.connectTimeout(DEFAULT_MILLISECONDS, TimeUnit.MILLISECONDS);'
+          dn_c_new = '        builder.connectTimeout(5000, TimeUnit.MILLISECONDS);'
+          patch(ogh, dn_c_old, dn_c_new, 2)
+          dn_o_old = '        Dns dns = OkGoHelper.dnsOverHttps != null ? OkGoHelper.dnsOverHttps : Dns.SYSTEM;\n        return dns.lookup(get(hostname));'
+          dn_o_new = '        Dns dns = (OkGoHelper.dnsOverHttps != null && OkGoHelper.__echoDohOn) ? OkGoHelper.dnsOverHttps : Dns.SYSTEM;\n        return OkGoHelper.__v4First(dns.lookup(get(hostname)));'
+          patch(okd, dn_o_old, dn_o_new)
+          dn_t_old = 'connectTimeout(TIMEOUT, TimeUnit.MILLISECONDS)'
+          dn_t_new = 'connectTimeout(5000, TimeUnit.MILLISECONDS)'
+          patch(okh, dn_t_old, dn_t_new)
+          print('patched: app-wide net speedup (system dns when doh off + ipv4-first + 5s connect)')
           print('patched: live dual-source merge + local proxy routing complete')
           PYEOF2
 
