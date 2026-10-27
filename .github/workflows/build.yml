@@ -216,15 +216,21 @@ jobs:
           flt_new = '            if (!obj.has("key") || !obj.has("type") || !obj.has("api")) {\n                LOG.i("echo-skip incomplete site config: " + obj);\n                continue;\n            }\n            String __api = obj.get("api").getAsString().trim();\n            if (!__api.endsWith(".js") && !__api.contains(".js?") && !__api.contains(".py")) {\n                LOG.i("echo-skip jar-dependent site api:" + __api);\n                continue;\n            }'
           patch(ac, flt_old, flt_new)
           print('patched: filter jar-dependent sites (keep js/py only, live unaffected)')
-          lv_old = '                JsonArray lives_groups=infoJson.get("lives").getAsJsonArray();'
-          lv_new = r'''                JsonArray lives_groups=infoJson.get("lives").getAsJsonArray();
-                lives_groups = gson.fromJson("[{\"name\":\"央视卫视直播\",\"type\":0,\"url\":\"https://live.fanmingming.com/tv/m3u/ipv6.m3u\",\"playerType\":1}]", JsonArray.class);'''
-          patch(ac, lv_old, lv_new)
-          print('patched: live source -> fanmingming ipv6 m3u (82 CCTV/wetv channels)')
-          la_old = '    public void loadLiveApi(JsonObject livesOBJ) {\n        try {\n            LOG.i("echo-loadLiveApi");'
-          la_new = '    public void loadLiveApi(JsonObject livesOBJ) {\n        try {\n            LOG.i("echo-loadLiveApi");\n            livesOBJ = gson.fromJson("{\\"name\\":\\"央视卫视直播\\",\\"type\\":0,\\"url\\":\\"https://live.fanmingming.com/tv/m3u/ipv6.m3u\\",\\"playerType\\":1}", JsonObject.class);'
-          patch(ac, la_old, la_new)
-          print('patched: loadLiveApi entry forced to fanmingming (covers all live load paths)')
+          print('patched: config lives pass-through (merge/fallback handled in live proxy)')
+          print('patched: default multi-source + auto failover + dead-link cooldown + jar-cache self-heal')
+          PYEOF
+
+      - name: Extra Modify Live
+        working-directory: TVBoxOSC
+        run: |
+          echo '注入直播双源合并+本地代理回退'
+          python3 - <<'PYEOF2'
+          def patch(path, old, new, count=1):
+              s = open(path, encoding='utf-8').read()
+              assert old in s, 'anchor not found: %r in %s' % (old[:60], path)
+              s = s.replace(old, new, count)
+              open(path, 'w', encoding='utf-8').write(s)
+          ac = 'app/src/main/java/com/github/tvbox/osc/api/ApiConfig.java'
           helper_body = r'''    private static String liveM3uKey(String name) {
               String n = name.trim();
               java.util.regex.Matcher m = java.util.regex.Pattern.compile("(?i)cctv-?\\s*(\\d+)\\s*(\\+)?").matcher(n);
@@ -249,6 +255,10 @@ jobs:
 
               private static String mergeLiveM3u(byte[] primary, byte[] secondary) {
                   try {
+                      if (primary != null) {
+                          String ptxt = new String(primary, "UTF-8");
+                          if (ptxt.indexOf("#EXTINF") < 0 && ptxt.indexOf("#EXTM3U") < 0) return null;
+                      }
                       java.util.LinkedHashMap<String, java.util.ArrayList<String[]>> chans = new java.util.LinkedHashMap<String, java.util.ArrayList<String[]>>();
                       java.util.LinkedHashMap<String, String[]> meta = new java.util.LinkedHashMap<String, String[]>();
                       java.util.ArrayList<String> order = new java.util.ArrayList<String>();
@@ -385,8 +395,8 @@ jobs:
           lp2_new = '            OkGo.<String>get(__proxyUrl.startsWith("http://127.0.0.1") ? __proxyUrl : "http://127.0.0.1:9978/proxy?do=live&type=txt&ext=" + Base64.encodeToString(url.getBytes(), Base64.DEFAULT | Base64.URL_SAFE | Base64.NO_WRAP)).execute(new AbsCallback<String>() {'
           patch(lp, lp2_old, lp2_new)
           print('patched: live txt fetch via local proxy (multi-URL fallback)')
-          print('patched: default multi-source + auto failover + dead-link cooldown + jar-cache self-heal')
-          PYEOF
+          print('patched: live dual-source merge + local proxy routing complete')
+          PYEOF2
 
       - name: Setup Python
         uses: actions/setup-python@v7
