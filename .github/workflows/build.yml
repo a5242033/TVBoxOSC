@@ -203,7 +203,13 @@ jobs:
           patch(ac, 'parseJson(apiUrl, json);\n                callback.success();', 'parseJson(apiUrl, json);\n                failoverTried.clear(); recordSuccess(apiUrl);\n                callback.success();')
           patch(ac, 'FileUtils.saveCache(cache,json);\n                    callback.success();', 'FileUtils.saveCache(cache,json);\n                    failoverTried.clear(); recordSuccess(apiUrl);\n                    callback.success();')
           patch(ac, 'parseJson(apiUrl, json);\n                        callback.success();', 'parseJson(apiUrl, json);\n                        failoverTried.clear(); recordSuccess(apiUrl);\n                        callback.success();')
-          print('patched: default multi-source + auto failover + dead-link cooldown')
+          jfix_a_old = '                            } else {\n                                callback.error("md5缓存失效");\n                            }'
+          jfix_a_new = '                            } else {\n                                if (retryCount < LOAD_JAR_MAX_RETRY) {\n                                    if (cache.exists() && !cache.delete()) {\n                                        LOG.i("echo---delete bad jar cache failed:" + cache.getAbsolutePath());\n                                    }\n                                    LOG.i("echo---retry load jar reason:cache_load_false url:" + spider + " retry:" + (retryCount + 1));\n                                    loadJar(false, spider, callback, retryCount + 1);\n                                } else {\n                                    callback.error("md5缓存失效");\n                                }\n                            }'
+          patch(ac, jfix_a_old, jfix_a_new)
+          jfix_b_old = '                if (jarLoader.load(cache.getAbsolutePath())) {\n                    callback.success();\n                } else {\n                    callback.error("md5缓存失效");\n                }'
+          jfix_b_new = '                if (jarLoader.load(cache.getAbsolutePath())) {\n                    callback.success();\n                } else {\n                    if (retryCount < LOAD_JAR_MAX_RETRY) {\n                        if (cache.exists() && !cache.delete()) {\n                            LOG.i("echo---delete bad jar cache failed:" + cache.getAbsolutePath());\n                        }\n                        LOG.i("echo---retry load jar reason:cache_load_false url:" + spider + " retry:" + (retryCount + 1));\n                        loadJar(false, spider, callback, retryCount + 1);\n                    } else {\n                        callback.error("md5缓存失效");\n                    }\n                }'
+          patch(ac, jfix_b_old, jfix_b_new)
+          print('patched: default multi-source + auto failover + dead-link cooldown + jar-cache self-heal')
           PYEOF
 
       - name: Setup Python
