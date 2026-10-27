@@ -209,6 +209,9 @@ jobs:
           jfix_b_old = '                if (jarLoader.load(cache.getAbsolutePath())) {\n                    callback.success();\n                } else {\n                    callback.error("md5缓存失效");\n                }'
           jfix_b_new = '                if (jarLoader.load(cache.getAbsolutePath())) {\n                    callback.success();\n                } else {\n                    if (retryCount < LOAD_JAR_MAX_RETRY) {\n                        if (cache.exists() && !cache.delete()) {\n                            LOG.i("echo---delete bad jar cache failed:" + cache.getAbsolutePath());\n                        }\n                        LOG.i("echo---retry load jar reason:cache_load_false url:" + spider + " retry:" + (retryCount + 1));\n                        loadJar(false, spider, callback, retryCount + 1);\n                    } else {\n                        callback.error("md5缓存失效");\n                    }\n                }'
           patch(ac, jfix_b_old, jfix_b_new)
+          bg = 'app/build.gradle'
+          patch(bg, "applicationId 'com.github.tvbox.osc.jun'", "applicationId 'com.github.tvbox.osc'")
+          print('patched: applicationId -> com.github.tvbox.osc (protected-jar whitelist)')
           print('patched: default multi-source + auto failover + dead-link cooldown + jar-cache self-heal')
           PYEOF
 
