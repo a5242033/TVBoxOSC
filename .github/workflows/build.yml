@@ -265,7 +265,15 @@ jobs:
                     '            }\n'
                     '        }')
           patch(ac, pl_old, pl_new)
-          print('patched: live txt proxy direct-fetch (no jar needed)')
+          print('patched: live txt proxy direct-fetch (no jar needed)')
+          lp = 'app/src/main/java/com/github/tvbox/osc/ui/activity/LivePlayActivity.java'
+          lp1_old = '    public void loadProxyLives(String url) {\n        try {\n            Uri parsedUrl = Uri.parse(url);'
+          lp1_new = '    public void loadProxyLives(String url) {\n        String __proxyUrl = url;\n        try {\n            Uri parsedUrl = Uri.parse(url);'
+          patch(lp, lp1_old, lp1_new)
+          lp2_old = '            OkGo.<String>get(url).execute(new AbsCallback<String>() {'
+          lp2_new = '            OkGo.<String>get(__proxyUrl.startsWith("http://127.0.0.1") ? __proxyUrl : "http://127.0.0.1:9978/proxy?do=live&type=txt&ext=" + Base64.encodeToString(url.getBytes(), Base64.DEFAULT | Base64.URL_SAFE | Base64.NO_WRAP)).execute(new AbsCallback<String>() {'
+          patch(lp, lp2_old, lp2_new)
+          print('patched: live txt fetch via local proxy (multi-URL fallback)')
           print('patched: default multi-source + auto failover + dead-link cooldown + jar-cache self-heal')
           PYEOF
 
