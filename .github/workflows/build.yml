@@ -212,6 +212,18 @@ jobs:
           bg = 'app/build.gradle'
           patch(bg, "applicationId 'com.github.tvbox.osc.jun'", "applicationId 'com.github.tvbox.osc'")
           print('patched: applicationId -> com.github.tvbox.osc (protected-jar whitelist)')
+          jl = 'app/src/main/java/com/github/catvod/crawler/JarLoader.java'
+          jl_old = '            protectedJar = protectedInitJar.check(jar);'
+          jl_new = '''            try {
+                clz.getMethod("init", Context.class).invoke(null, App.getInstance());
+                Log.i(TAG, "echo---normal-init-ok jar=" + jar);
+                return true;
+            } catch (Throwable e0) {
+                Log.i(TAG, "echo---normal-init-fail jar=" + jar + " msg=" + e0.getMessage());
+            }
+            protectedJar = protectedInitJar.check(jar);'''
+          patch(jl, jl_old, jl_new)
+          print('patched: JarLoader prefer plain Init.init(Context), skip protected handshake')
           print('patched: default multi-source + auto failover + dead-link cooldown + jar-cache self-heal')
           PYEOF
 
