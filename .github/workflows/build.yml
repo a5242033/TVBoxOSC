@@ -49,10 +49,6 @@ jobs:
                       Hawk.put(HawkConfig.API_URL, "https://qist.wyfc.qzz.io/jsm.json");
                       java.util.ArrayList<String> defHistory = new java.util.ArrayList<>();
                       defHistory.add("https://qist.wyfc.qzz.io/jsm.json");
-                      defHistory.add("http://xhztv.top/4k.json");
-                      defHistory.add("http://47.96.82.41:5188/rose/18/xgg.json");
-                      defHistory.add("https://raw.liucn.cc/box/m.json");
-                      defHistory.add("https://6800.kstore.vip/fish.json");
                       Hawk.put(HawkConfig.API_HISTORY, defHistory);
                       Hawk.put(HawkConfig.HOME_REC, Integer.valueOf(0));
                       Hawk.put(HawkConfig.HOME_REC_STYLE, Boolean.TRUE);
@@ -216,9 +212,10 @@ jobs:
           lj_new = '    public void loadJar(boolean useCache, String spider, LoadConfigCallback callback) {\n        boolean skipJarLoad = true;\n        if (skipJarLoad) { LOG.i("echo---skip-jar-load url:" + spider); callback.success(); return; }'
           patch(ac, lj_old, lj_new)
           print('patched: skip jar load (anti-hang jar kills host process)')
-          patch(app, 'Hawk.put(HawkConfig.API_URL, "https://qist.wyfc.qzz.io/jsm.json");', 'Hawk.put(HawkConfig.API_URL, "https://6800.kstore.vip/fish.json");')
-          patch(app, 'defHistory.add("https://qist.wyfc.qzz.io/jsm.json");', 'defHistory.add("https://6800.kstore.vip/fish.json");')
-          print('patched: default api -> fish.json (104 pure-py sites, no jar)')
+          flt_old = '            if (!obj.has("key") || !obj.has("type") || !obj.has("api")) {\n                LOG.i("echo-skip incomplete site config: " + obj);\n                continue;\n            }'
+          flt_new = '            if (!obj.has("key") || !obj.has("type") || !obj.has("api")) {\n                LOG.i("echo-skip incomplete site config: " + obj);\n                continue;\n            }\n            String __api = obj.get("api").getAsString().trim();\n            if (!__api.endsWith(".js") && !__api.contains(".js?") && !__api.contains(".py")) {\n                LOG.i("echo-skip jar-dependent site api:" + __api);\n                continue;\n            }'
+          patch(ac, flt_old, flt_new)
+          print('patched: filter jar-dependent sites (keep js/py only, live unaffected)')
           print('patched: default multi-source + auto failover + dead-link cooldown + jar-cache self-heal')
           PYEOF
 
