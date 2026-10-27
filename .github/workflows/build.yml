@@ -225,47 +225,158 @@ jobs:
           la_new = '    public void loadLiveApi(JsonObject livesOBJ) {\n        try {\n            LOG.i("echo-loadLiveApi");\n            livesOBJ = gson.fromJson("{\\"name\\":\\"央视卫视直播\\",\\"type\\":0,\\"url\\":\\"https://live.fanmingming.com/tv/m3u/ipv6.m3u\\",\\"playerType\\":1}", JsonObject.class);'
           patch(ac, la_old, la_new)
           print('patched: loadLiveApi entry forced to fanmingming (covers all live load paths)')
+          helper_body = r'''    private static String liveM3uKey(String name) {
+              String n = name.trim();
+              java.util.regex.Matcher m = java.util.regex.Pattern.compile("(?i)cctv-?\\s*(\\d+)\\s*(\\+)?").matcher(n);
+              if (m.find()) {
+                  return "CCTV" + m.group(1) + (m.group(2) != null ? "+" : "");
+              }
+              return n.replaceAll("(?i)[\\s:|]*(HD|高清|超清|蓝光)$", "").trim();
+          }
+
+              private static int liveUrlScore(String url, boolean fromPrimary) {
+                  if (url.indexOf("://[") >= 0) return 3;
+                  String host = "";
+                  try {
+                      host = new java.net.URL(url).getHost();
+                  } catch (Throwable ignored) {
+                  }
+                  if (host.contains("63.141.230.178") || host.contains("38.75.136.137") || host.contains("107.150.60.122") || host.contains("198.204.228.26") || host.contains("204.12.221.218") || host.contains("104.152.209.49")) return 4;
+                  boolean bareIp = host.matches("\\d+\\.\\d+\\.\\d+\\.\\d+");
+                  if (bareIp) return 2;
+                  return fromPrimary ? 1 : 0;
+              }
+
+              private static String mergeLiveM3u(byte[] primary, byte[] secondary) {
+                  try {
+                      java.util.LinkedHashMap<String, java.util.ArrayList<String[]>> chans = new java.util.LinkedHashMap<String, java.util.ArrayList<String[]>>();
+                      java.util.LinkedHashMap<String, String[]> meta = new java.util.LinkedHashMap<String, String[]>();
+                      java.util.ArrayList<String> order = new java.util.ArrayList<String>();
+                      byte[][] data = {primary, secondary};
+                      for (int k = 0; k < 2; k++) {
+                          if (data[k] == null) continue;
+                          String[] lines = new String(data[k], "UTF-8").split("\n");
+                          String attr = null;
+                          String name = null;
+                          for (int i = 0; i < lines.length; i++) {
+                              String line = lines[i].trim();
+                              if (line.startsWith("#EXTINF")) {
+                                  int ci = line.lastIndexOf(',');
+                                  name = ci >= 0 ? line.substring(ci + 1).trim() : "";
+                                  attr = line;
+                              } else if (line.startsWith("http") && name != null && !name.isEmpty()) {
+                                  String key = liveM3uKey(name);
+                                  if (k == 1) {
+                                      boolean keep = key.startsWith("CCTV") || key.endsWith("卫视");
+                                      if (!keep) {
+                                          name = null;
+                                          continue;
+                                      }
+                                  }
+                                  java.util.ArrayList<String[]> list = chans.get(key);
+                                  if (list == null) {
+                                      list = new java.util.ArrayList<String[]>();
+                                      chans.put(key, list);
+                                      order.add(key);
+                                  }
+                                  boolean dup = false;
+                                  for (String[] e : list) {
+                                      if (e[1].equals(line)) {
+                                          dup = true;
+                                          break;
+                                      }
+                                  }
+                                  if (!dup) list.add(new String[]{String.valueOf(liveUrlScore(line, k == 0)), line});
+                                  if (k == 0 || !meta.containsKey(key)) meta.put(key, new String[]{attr, name});
+                                  name = null;
+                              }
+                          }
+                      }
+                      if (chans.isEmpty()) return null;
+                      StringBuilder sb = new StringBuilder();
+                      sb.append("#EXTM3U x-tvg-url=\"https://live.fanmingming.cn/e.xml\"\n");
+                      for (String key : order) {
+                          String[] m = meta.get(key);
+                          java.util.ArrayList<String[]> list = chans.get(key);
+                          java.util.Collections.sort(list, new java.util.Comparator<String[]>() {
+                              public int compare(String[] x, String[] y) {
+                                  return Integer.parseInt(x[0]) - Integer.parseInt(y[0]);
+                              }
+                          });
+                          boolean first = true;
+                          for (String[] e : list) {
+                              if (first) {
+                                  sb.append(m[0] != null ? m[0] : ("#EXTINF:-1 ," + m[1])).append("\n");
+                                  first = false;
+                              } else {
+                                  sb.append("#EXTINF:-1 tvg-name=\"").append(m[1]).append("\",").append(m[1]).append("\n");
+                              }
+                              sb.append(e[1]).append("\n");
+                          }
+                      }
+                      return sb.toString();
+                  } catch (Throwable th) {
+                      LOG.e("echo-merge-live error: " + th.getMessage());
+                      return null;
+                  }
+              }'''
+          helper_new = helper_body + '\n\n    public Object[] proxyLocal(Map<String, String> param) {'
+          patch(ac, '    public Object[] proxyLocal(Map<String, String> param) {', helper_new)
+          print('patched: live m3u merge helpers (dual-source, quality-ordered lines)')
           pl_old = '        String siteKey = param.get("siteKey");\n        String action = param.get("do");'
-          pl_new = ('        String siteKey = param.get("siteKey");\n'
-                    '        String action = param.get("do");\n'
-                    '        if ("live".equals(action) && "txt".equals(param.get("type"))) {\n'
-                    '            try {\n'
-                    '                String ext = param.get("ext");\n'
-                    '                if (ext != null && !ext.isEmpty()) {\n'
-                    '                    String liveUrl = new String(Base64.decode(ext, Base64.DEFAULT | Base64.URL_SAFE | Base64.NO_WRAP), "UTF-8");\n'
-                    '                    java.util.ArrayList<String> tryUrls = new java.util.ArrayList<String>();\n'
-                    '                    if (liveUrl.startsWith("http")) tryUrls.add(liveUrl);\n'
-                    '                    tryUrls.add("https://gh-proxy.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/m3u/ipv6.m3u");\n'
-                    '                    tryUrls.add("https://iptv-org.github.io/iptv/countries/cn.m3u");\n'
-                    '                    for (String u : tryUrls) {\n'
-                    '                        try {\n'
-                    '                            LOG.i("echo-live-proxy try " + u);\n'
-                    '                            java.net.HttpURLConnection conn = (java.net.HttpURLConnection) new java.net.URL(u).openConnection();\n'
-                    '                            conn.setConnectTimeout(6000);\n'
-                    '                            conn.setReadTimeout(8000);\n'
-                    '                            conn.setRequestProperty("User-Agent", "okhttp/3.8.1");\n'
-                    '                            java.io.InputStream in = conn.getInputStream();\n'
-                    '                            java.io.ByteArrayOutputStream bos = new java.io.ByteArrayOutputStream();\n'
-                    '                            byte[] buf = new byte[8192];\n'
-                    '                            int n;\n'
-                    '                            while ((n = in.read(buf)) > 0) bos.write(buf, 0, n);\n'
-                    '                            in.close();\n'
-                    '                            byte[] body = bos.toByteArray();\n'
-                    '                            if (body.length > 100) {\n'
-                    '                                LOG.i("echo-live-proxy ok url:" + u + " len:" + body.length);\n'
-                    '                                return new Object[]{200, "text/plain", new java.io.ByteArrayInputStream(body)};\n'
-                    '                            }\n'
-                    '                        } catch (Throwable th2) {\n'
-                    '                            LOG.e("echo-live-proxy try fail " + u + ": " + th2.getMessage());\n'
-                    '                        }\n'
-                    '                    }\n'
-                    '                }\n'
-                    '            } catch (Throwable th) {\n'
-                    '                LOG.e("echo-live-proxy error: " + th.getMessage());\n'
-                    '            }\n'
-                    '        }')
+          pl_new = r'''        String siteKey = param.get("siteKey");
+          String action = param.get("do");
+          if ("live".equals(action) && "txt".equals(param.get("type"))) {
+              try {
+                  java.util.ArrayList<String[]> tryUrls = new java.util.ArrayList<String[]>();
+                  String ext = param.get("ext");
+                  if (ext != null && !ext.isEmpty()) {
+                      String liveUrl = new String(Base64.decode(ext, Base64.DEFAULT | Base64.URL_SAFE | Base64.NO_WRAP), "UTF-8");
+                      if (liveUrl.startsWith("http")) tryUrls.add(new String[]{"a", liveUrl});
+                  }
+                  tryUrls.add(new String[]{"a", "https://gh-proxy.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/m3u/ipv6.m3u"});
+                  tryUrls.add(new String[]{"a", "https://iptv-org.github.io/iptv/countries/cn.m3u"});
+                  tryUrls.add(new String[]{"b", "https://gh-proxy.com/https://raw.githubusercontent.com/Guovin/iptv-api/gd/output/result.m3u"});
+                  tryUrls.add(new String[]{"b", "https://raw.githubusercontent.com/Guovin/iptv-api/gd/output/result.m3u"});
+                  byte[] listA = null;
+                  byte[] listB = null;
+                  for (String[] sd : tryUrls) {
+                      boolean isA = "a".equals(sd[0]);
+                      if ((isA && listA != null) || (!isA && listB != null)) continue;
+                      try {
+                          LOG.i("echo-live-proxy try " + sd[1]);
+                          java.net.HttpURLConnection conn = (java.net.HttpURLConnection) new java.net.URL(sd[1]).openConnection();
+                          conn.setConnectTimeout(6000);
+                          conn.setReadTimeout(12000);
+                          conn.setRequestProperty("User-Agent", "okhttp/3.8.1");
+                          java.io.InputStream in = conn.getInputStream();
+                          java.io.ByteArrayOutputStream bos = new java.io.ByteArrayOutputStream();
+                          byte[] buf = new byte[8192];
+                          int n;
+                          while ((n = in.read(buf)) > 0) bos.write(buf, 0, n);
+                          in.close();
+                          byte[] body = bos.toByteArray();
+                          if (body.length > 100) {
+                              if (isA) listA = body; else listB = body;
+                              LOG.i("echo-live-proxy ok list" + sd[0] + " url:" + sd[1] + " len:" + body.length);
+                          }
+                      } catch (Throwable th2) {
+                          LOG.e("echo-live-proxy try fail " + sd[1] + ": " + th2.getMessage());
+                      }
+                  }
+                  String merged = mergeLiveM3u(listA, listB);
+                  if (merged != null && merged.length() > 100) {
+                      LOG.i("echo-live-proxy merged len:" + merged.length());
+                      return new Object[]{200, "text/plain", new java.io.ByteArrayInputStream(merged.getBytes("UTF-8"))};
+                  }
+                  byte[] fallback = listA != null ? listA : listB;
+                  if (fallback != null) return new Object[]{200, "text/plain", new java.io.ByteArrayInputStream(fallback)};
+              } catch (Throwable th) {
+                  LOG.e("echo-live-proxy error: " + th.getMessage());
+              }
+          }'''
           patch(ac, pl_old, pl_new)
-          print('patched: live txt proxy direct-fetch (no jar needed)')
+          print('patched: live txt proxy dual-source merge (IPv4-first line ordering)')
           lp = 'app/src/main/java/com/github/tvbox/osc/ui/activity/LivePlayActivity.java'
           lp1_old = '    public void loadProxyLives(String url) {\n        try {\n            Uri parsedUrl = Uri.parse(url);'
           lp1_new = '    public void loadProxyLives(String url) {\n        String __proxyUrl = url;\n        try {\n            Uri parsedUrl = Uri.parse(url);'
