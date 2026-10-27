@@ -1,473 +1,473 @@
-name: Build
-
-on:
-  workflow_dispatch:
-
-permissions:
-  contents: write
-
-jobs:
-  build:
-    runs-on: ubuntu-22.04
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v7
-
-      - name: Prepare Build Tag
-        run: |
-          echo "tag=$(date +%Y%m%d-%H%M)" >> $GITHUB_ENV
-          echo "commitS=$(date +%Y%m%d%H%M)" >> $GITHUB_ENV
-
-      - name: Checkout Source Code
-        run: |
-          git clone --depth 1 https://github.com/q215613905/TVBoxOS TVBoxOSC
-
-      - name: Extra Modify
-        working-directory: TVBoxOSC
-        run: |
-          echo '修改VersionName'
-          sed -i "/versionName/s#[0-9a-zA-Z_\.\'\"-]\+\$#\'${{ env.tag }}\'#" app/build.gradle
-          sed -i "/android:text=/s#=\"#=\"${{ env.tag }}\\\\n\\\\n#" app/src/main/res/layout/dialog_about.xml
-          echo 'crosswalk源，防挂'
-          if grep -q 'crosswalk' build.gradle; then
-            sed -i "/crosswalk/a\        maven { url 'https://j4uq.github.io/crosswalk/releases/crosswalk/android/maven2' }" build.gradle
-          else
-            sed -i "/jitpack.io/a\        maven { url 'https://j4uq.github.io/crosswalk/releases/crosswalk/android/maven2' }" build.gradle
-          fi
-          echo '注入默认配置(多源) + 自动故障切换 + 死链冷却'
-          python3 - <<'PYEOF'
-          import re
-          def patch(path, old, new, count=1):
-              s = open(path, encoding='utf-8').read()
-              assert old in s, 'anchor not found: %r in %s' % (old[:60], path)
-              s = s.replace(old, new, count)
-              open(path, 'w', encoding='utf-8').write(s)
-          app = 'app/src/main/java/com/github/tvbox/osc/base/App.java'
-          block = '''Hawk.init(this).build();
-                  String defApi = Hawk.get(HawkConfig.API_URL, "");
-                  if (defApi == null || defApi.isEmpty()) {
-                      Hawk.put(HawkConfig.API_URL, "https://qist.wyfc.qzz.io/jsm.json");
-                      java.util.ArrayList<String> defHistory = new java.util.ArrayList<>();
-                      defHistory.add("https://qist.wyfc.qzz.io/jsm.json");
-                      Hawk.put(HawkConfig.API_HISTORY, defHistory);
-                      Hawk.put(HawkConfig.HOME_REC, Integer.valueOf(0));
-                      Hawk.put(HawkConfig.HOME_REC_STYLE, Boolean.TRUE);
-                  }'''
-          patch(app, 'Hawk.init(this).build();', block)
-          sp = 'app/src/main/res/values/strings.xml'
-          s = open(sp, encoding='utf-8').read()
-          s2, n = re.subn(r'(<string name="app_name">)[^<]*(</string>)', r'\g<1>电视简单化\g<2>', s, count=1)
-          assert n == 1, 'app_name not found in strings.xml'
-          open(sp, 'w', encoding='utf-8').write(s2)
-          print('app_name patched -> 电视简单化')
-          ac = 'app/src/main/java/com/github/tvbox/osc/api/ApiConfig.java'
-          helper = '''    private static final java.util.LinkedHashSet<String> failoverTried = new java.util.LinkedHashSet<String>();
-
-              private static final String FAIL_MAP_KEY = "api_fail_map";
-
-              private static java.util.HashMap<String, String> loadFailMap() {
-                  java.util.HashMap<String, String> m = Hawk.get(FAIL_MAP_KEY, new java.util.HashMap<String, String>());
-                  return m == null ? new java.util.HashMap<String, String>() : m;
-              }
-
-              private void recordFail(String url) {
-                  try {
-                      if (url == null || url.trim().isEmpty()) return;
-                      java.util.HashMap<String, String> m = loadFailMap();
-                      String v = m.get(url);
-                      int cnt = 1;
-                      if (v != null) {
-                          int sp = v.indexOf('|');
-                          try { cnt = Integer.parseInt(v.substring(0, sp)) + 1; } catch (Throwable ignored) { cnt = 1; }
-                      }
-                      m.put(url, cnt + "|" + System.currentTimeMillis());
-                      Hawk.put(FAIL_MAP_KEY, m);
-                      LOG.i("echo-config dead-link mark " + url + " failCount=" + cnt + " cooldown=" + cooldownMinutes(cnt) + "min");
-                  } catch (Throwable th) {
-                      th.printStackTrace();
-                  }
-              }
-
-              private void recordSuccess(String url) {
-                  try {
-                      if (url == null || url.trim().isEmpty()) return;
-                      java.util.HashMap<String, String> m = loadFailMap();
-                      if (m.remove(url) != null) {
-                          Hawk.put(FAIL_MAP_KEY, m);
-                          LOG.i("echo-config dead-link recovered " + url);
-                      }
-                  } catch (Throwable th) {
-                      th.printStackTrace();
-                  }
-              }
-
-              private static long cooldownMinutes(int failCount) {
-                  if (failCount <= 1) return 10L;
-                  if (failCount == 2) return 60L;
-                  if (failCount == 3) return 360L;
-                  return 1440L;
-              }
-
-              private boolean isInCooldown(String url) {
-                  try {
-                      java.util.HashMap<String, String> m = loadFailMap();
-                      String v = m.get(url);
-                      if (v == null) return false;
-                      int sp = v.indexOf('|');
-                      if (sp < 0) return false;
-                      int cnt = Integer.parseInt(v.substring(0, sp));
-                      long last = Long.parseLong(v.substring(sp + 1));
-                      return (System.currentTimeMillis() - last) < cooldownMinutes(cnt) * 60000L;
-                  } catch (Throwable th) {
-                      return false;
-                  }
-              }
-
-              private String pickLeastDead() {
-                  try {
-                      String current = Hawk.get(HawkConfig.API_URL, "");
-                      java.util.ArrayList<String> history = Hawk.get(HawkConfig.API_HISTORY, new java.util.ArrayList<String>());
-                      java.util.HashMap<String, String> m = loadFailMap();
-                      String best = null;
-                      long bestLast = Long.MAX_VALUE;
-                      for (String h : history) {
-                          String u = h;
-                          int sp = h.indexOf('\\t');
-                          if (sp >= 0) u = h.substring(sp + 1);
-                          u = u.trim();
-                          if (u.isEmpty() || u.equals(current) || failoverTried.contains(u)) continue;
-                          String v = m.get(u);
-                          long last = 0L;
-                          if (v != null) {
-                              int p = v.indexOf('|');
-                              if (p >= 0) {
-                                  try { last = Long.parseLong(v.substring(p + 1)); } catch (Throwable ignored) { }
-                              }
-                          }
-                          if (best == null || last < bestLast) {
-                              best = u;
-                              bestLast = last;
-                          }
-                      }
-                      return best;
-                  } catch (Throwable th) {
-                      th.printStackTrace();
-                      return null;
-                  }
-              }
-
-              private boolean tryFailover(LoadConfigCallback callback, Activity activity) {
-                  try {
-                      String current = Hawk.get(HawkConfig.API_URL, "");
-                      recordFail(current);
-                      java.util.ArrayList<String> history = Hawk.get(HawkConfig.API_HISTORY, new java.util.ArrayList<String>());
-                      for (String h : history) {
-                          String u = h;
-                          int sp = h.indexOf('\\t');
-                          if (sp >= 0) u = h.substring(sp + 1);
-                          u = u.trim();
-                          if (u.isEmpty() || u.equals(current) || failoverTried.contains(u)) continue;
-                          if (isInCooldown(u)) {
-                              LOG.i("echo-config skip cooldown " + u);
-                              continue;
-                          }
-                          failoverTried.add(u);
-                          LOG.i("echo-config failover " + current + " -> " + u);
-                          Hawk.put(HawkConfig.API_URL, u);
-                          loadConfig(false, callback, activity);
-                          return true;
-                      }
-                      String least = pickLeastDead();
-                      if (least != null && !least.equals(current) && !failoverTried.contains(least)) {
-                          failoverTried.add(least);
-                          LOG.i("echo-config failover-cooldown-fallback " + current + " -> " + least);
-                          Hawk.put(HawkConfig.API_URL, least);
-                          loadConfig(false, callback, activity);
-                          return true;
-                      }
-                  } catch (Throwable th) {
-                      th.printStackTrace();
-                  }
-                  failoverTried.clear();
-                  return false;
-              }
-
-              private boolean switchApiCollectionIfNeeded(String apiUrl, String jsonStr) {'''
-          patch(ac, '    private boolean switchApiCollectionIfNeeded(String apiUrl, String jsonStr) {', helper)
-          patch(ac, 'callback.error("拉取配置失败\\n" + error);', 'if (tryFailover(callback, activity)) return;\n                callback.error("拉取配置失败\\n" + error);')
-          patch(ac, 'callback.error("配置解析失败");', 'if (tryFailover(callback, activity)) return;\n                    callback.error("配置解析失败");')
-          patch(ac, 'parseJson(apiUrl, json);\n                callback.success();', 'parseJson(apiUrl, json);\n                failoverTried.clear(); recordSuccess(apiUrl);\n                callback.success();')
-          patch(ac, 'FileUtils.saveCache(cache,json);\n                    callback.success();', 'FileUtils.saveCache(cache,json);\n                    failoverTried.clear(); recordSuccess(apiUrl);\n                    callback.success();')
-          patch(ac, 'parseJson(apiUrl, json);\n                        callback.success();', 'parseJson(apiUrl, json);\n                        failoverTried.clear(); recordSuccess(apiUrl);\n                        callback.success();')
-          jfix_a_old = '                            } else {\n                                callback.error("md5缓存失效");\n                            }'
-          jfix_a_new = '                            } else {\n                                if (retryCount < LOAD_JAR_MAX_RETRY) {\n                                    if (cache.exists() && !cache.delete()) {\n                                        LOG.i("echo---delete bad jar cache failed:" + cache.getAbsolutePath());\n                                    }\n                                    LOG.i("echo---retry load jar reason:cache_load_false url:" + spider + " retry:" + (retryCount + 1));\n                                    loadJar(false, spider, callback, retryCount + 1);\n                                } else {\n                                    callback.error("md5缓存失效");\n                                }\n                            }'
-          patch(ac, jfix_a_old, jfix_a_new)
-          jfix_b_old = '                if (jarLoader.load(cache.getAbsolutePath())) {\n                    callback.success();\n                } else {\n                    callback.error("md5缓存失效");\n                }'
-          jfix_b_new = '                if (jarLoader.load(cache.getAbsolutePath())) {\n                    callback.success();\n                } else {\n                    if (retryCount < LOAD_JAR_MAX_RETRY) {\n                        if (cache.exists() && !cache.delete()) {\n                            LOG.i("echo---delete bad jar cache failed:" + cache.getAbsolutePath());\n                        }\n                        LOG.i("echo---retry load jar reason:cache_load_false url:" + spider + " retry:" + (retryCount + 1));\n                        loadJar(false, spider, callback, retryCount + 1);\n                    } else {\n                        callback.error("md5缓存失效");\n                    }\n                }'
-          patch(ac, jfix_b_old, jfix_b_new)
-          bg = 'app/build.gradle'
-          patch(bg, "applicationId 'com.github.tvbox.osc.jun'", "applicationId 'com.github.tvbox.osc'")
-          print('patched: applicationId -> com.github.tvbox.osc (protected-jar whitelist)')
-          lj_old = '    public void loadJar(boolean useCache, String spider, LoadConfigCallback callback) {'
-          lj_new = '    public void loadJar(boolean useCache, String spider, LoadConfigCallback callback) {\n        boolean skipJarLoad = true;\n        if (skipJarLoad) { LOG.i("echo---skip-jar-load url:" + spider); callback.success(); return; }'
-          patch(ac, lj_old, lj_new)
-          print('patched: skip jar load (anti-hang jar kills host process)')
-          flt_old = '            if (!obj.has("key") || !obj.has("type") || !obj.has("api")) {\n                LOG.i("echo-skip incomplete site config: " + obj);\n                continue;\n            }'
-          flt_new = '            if (!obj.has("key") || !obj.has("type") || !obj.has("api")) {\n                LOG.i("echo-skip incomplete site config: " + obj);\n                continue;\n            }\n            String __api = obj.get("api").getAsString().trim();\n            if (!__api.endsWith(".js") && !__api.contains(".js?") && !__api.contains(".py")) {\n                LOG.i("echo-skip jar-dependent site api:" + __api);\n                continue;\n            }'
-          patch(ac, flt_old, flt_new)
-          print('patched: filter jar-dependent sites (keep js/py only, live unaffected)')
-          print('patched: config lives pass-through (merge/fallback handled in live proxy)')
-          print('patched: default multi-source + auto failover + dead-link cooldown + jar-cache self-heal')
-          PYEOF
-
-      - name: Extra Modify Live
-        working-directory: TVBoxOSC
-        run: |
-          echo '注入直播双源合并+本地代理回退'
-          python3 - <<'PYEOF2'
-          def patch(path, old, new, count=1):
-              s = open(path, encoding='utf-8').read()
-              assert old in s, 'anchor not found: %r in %s' % (old[:60], path)
-              s = s.replace(old, new, count)
-              open(path, 'w', encoding='utf-8').write(s)
-          ac = 'app/src/main/java/com/github/tvbox/osc/api/ApiConfig.java'
-          helper_body = r'''    private static String liveM3uKey(String name) {
-              String n = name.trim();
-              java.util.regex.Matcher m = java.util.regex.Pattern.compile("(?i)cctv-?\\s*(\\d+)\\s*(\\+)?").matcher(n);
-              if (m.find()) {
-                  return "CCTV" + m.group(1) + (m.group(2) != null ? "+" : "");
-              }
-              return n.replaceAll("(?i)[\\s:|]*(HD|高清|超清|蓝光)$", "").trim();
-          }
-
-              private static int liveUrlScore(String url, boolean fromPrimary) {
-                  if (url.indexOf("://[") >= 0) return 3;
-                  String host = "";
-                  try {
-                      host = new java.net.URL(url).getHost();
-                  } catch (Throwable ignored) {
-                  }
-                  if (host.contains("63.141.230.178") || host.contains("38.75.136.137") || host.contains("107.150.60.122") || host.contains("198.204.228.26") || host.contains("204.12.221.218") || host.contains("104.152.209.49")) return 4;
-                  boolean bareIp = host.matches("\\d+\\.\\d+\\.\\d+\\.\\d+");
-                  if (bareIp) return 2;
-                  return fromPrimary ? 1 : 0;
-              }
-
-              private static String mergeLiveM3u(byte[] primary, byte[] secondary) {
-                  try {
-                      if (primary != null) {
-                          String ptxt = new String(primary, "UTF-8");
-                          if (ptxt.indexOf("#EXTINF") < 0 && ptxt.indexOf("#EXTM3U") < 0) return null;
-                      }
-                      java.util.LinkedHashMap<String, java.util.ArrayList<String[]>> chans = new java.util.LinkedHashMap<String, java.util.ArrayList<String[]>>();
-                      java.util.LinkedHashMap<String, String[]> meta = new java.util.LinkedHashMap<String, String[]>();
-                      java.util.ArrayList<String> order = new java.util.ArrayList<String>();
-                      byte[][] data = {primary, secondary};
-                      for (int k = 0; k < 2; k++) {
-                          if (data[k] == null) continue;
-                          String[] lines = new String(data[k], "UTF-8").split("\n");
-                          String attr = null;
-                          String name = null;
-                          for (int i = 0; i < lines.length; i++) {
-                              String line = lines[i].trim();
-                              if (line.startsWith("#EXTINF")) {
-                                  int ci = line.lastIndexOf(',');
-                                  name = ci >= 0 ? line.substring(ci + 1).trim() : "";
-                                  attr = line;
-                              } else if (line.startsWith("http") && name != null && !name.isEmpty()) {
-                                  String key = liveM3uKey(name);
-                                  if (k == 1) {
-                                      boolean keep = key.startsWith("CCTV") || key.endsWith("卫视");
-                                      if (!keep) {
-                                          name = null;
-                                          continue;
-                                      }
-                                  }
-                                  java.util.ArrayList<String[]> list = chans.get(key);
-                                  if (list == null) {
-                                      list = new java.util.ArrayList<String[]>();
-                                      chans.put(key, list);
-                                      order.add(key);
-                                  }
-                                  boolean dup = false;
-                                  for (String[] e : list) {
-                                      if (e[1].equals(line)) {
-                                          dup = true;
-                                          break;
-                                      }
-                                  }
-                                  if (!dup) list.add(new String[]{String.valueOf(liveUrlScore(line, k == 0)), line});
-                                  if (k == 0 || !meta.containsKey(key)) meta.put(key, new String[]{attr, name});
-                                  name = null;
-                              }
-                          }
-                      }
-                      if (chans.isEmpty()) return null;
-                      StringBuilder sb = new StringBuilder();
-                      sb.append("#EXTM3U x-tvg-url=\"https://live.fanmingming.cn/e.xml\"\n");
-                      for (String key : order) {
-                          String[] m = meta.get(key);
-                          java.util.ArrayList<String[]> list = chans.get(key);
-                          java.util.Collections.sort(list, new java.util.Comparator<String[]>() {
-                              public int compare(String[] x, String[] y) {
-                                  return Integer.parseInt(x[0]) - Integer.parseInt(y[0]);
-                              }
-                          });
-                          boolean first = true;
-                          String grp = "";
-                          if (m[0] != null) {
-                              java.util.regex.Matcher gm = java.util.regex.Pattern.compile("group-title=\"(.*?)\"").matcher(m[0]);
-                              if (gm.find()) grp = " group-title=\"" + gm.group(1) + "\"";
-                          }
-                          for (String[] e : list) {
-                              if (first) {
-                                  sb.append(m[0] != null ? m[0] : ("#EXTINF:-1 ," + m[1])).append("\n");
-                                  first = false;
-                              } else {
-                                  sb.append("#EXTINF:-1 tvg-name=\"").append(m[1]).append("\"").append(grp).append(",").append(m[1]).append("\n");
-                              }
-                              sb.append(e[1]).append("\n");
-                          }
-                      }
-                      return sb.toString();
-                  } catch (Throwable th) {
-                      LOG.e("echo-merge-live error: " + th.getMessage());
-                      return null;
-                  }
-              }'''
-          helper_new = helper_body + '\n\n    public Object[] proxyLocal(Map<String, String> param) {'
-          patch(ac, '    public Object[] proxyLocal(Map<String, String> param) {', helper_new)
-          print('patched: live m3u merge helpers (dual-source, quality-ordered lines)')
-          pl_old = '        String siteKey = param.get("siteKey");\n        String action = param.get("do");'
-          pl_new = r'''        String siteKey = param.get("siteKey");
-          String action = param.get("do");
-          if ("live".equals(action) && "txt".equals(param.get("type"))) {
-              try {
-                  java.util.ArrayList<String[]> tryUrls = new java.util.ArrayList<String[]>();
-                  String ext = param.get("ext");
-                  if (ext != null && !ext.isEmpty()) {
-                      String liveUrl = new String(Base64.decode(ext, Base64.DEFAULT | Base64.URL_SAFE | Base64.NO_WRAP), "UTF-8");
-                      if (liveUrl.startsWith("http")) tryUrls.add(new String[]{"a", liveUrl});
-                  }
-                  tryUrls.add(new String[]{"a", "https://gh-proxy.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/m3u/ipv6.m3u"});
-                  tryUrls.add(new String[]{"a", "https://iptv-org.github.io/iptv/countries/cn.m3u"});
-                  tryUrls.add(new String[]{"b", "https://gh-proxy.com/https://raw.githubusercontent.com/Guovin/iptv-api/gd/output/result.m3u"});
-                  tryUrls.add(new String[]{"b", "https://raw.githubusercontent.com/Guovin/iptv-api/gd/output/result.m3u"});
-                  byte[] listA = null;
-                  byte[] listB = null;
-                  for (String[] sd : tryUrls) {
-                      boolean isA = "a".equals(sd[0]);
-                      if ((isA && listA != null) || (!isA && listB != null)) continue;
-                      try {
-                          LOG.i("echo-live-proxy try " + sd[1]);
-                          java.net.HttpURLConnection conn = (java.net.HttpURLConnection) new java.net.URL(sd[1]).openConnection();
-                          conn.setConnectTimeout(6000);
-                          conn.setReadTimeout(12000);
-                          conn.setRequestProperty("User-Agent", "okhttp/3.8.1");
-                          java.io.InputStream in = conn.getInputStream();
-                          java.io.ByteArrayOutputStream bos = new java.io.ByteArrayOutputStream();
-                          byte[] buf = new byte[8192];
-                          int n;
-                          while ((n = in.read(buf)) > 0) bos.write(buf, 0, n);
-                          in.close();
-                          byte[] body = bos.toByteArray();
-                          if (body.length > 100) {
-                              if (isA) listA = body; else listB = body;
-                              LOG.i("echo-live-proxy ok list" + sd[0] + " url:" + sd[1] + " len:" + body.length);
-                          }
-                      } catch (Throwable th2) {
-                          LOG.e("echo-live-proxy try fail " + sd[1] + ": " + th2.getMessage());
-                      }
-                  }
-                  String merged = mergeLiveM3u(listA, listB);
-                  if (merged != null && merged.length() > 100) {
-                      LOG.i("echo-live-proxy merged len:" + merged.length());
-                      return new Object[]{200, "text/plain", new java.io.ByteArrayInputStream(merged.getBytes("UTF-8"))};
-                  }
-                  byte[] fallback = listA != null ? listA : listB;
-                  if (fallback != null) return new Object[]{200, "text/plain", new java.io.ByteArrayInputStream(fallback)};
-              } catch (Throwable th) {
-                  LOG.e("echo-live-proxy error: " + th.getMessage());
-              }
-          }'''
-          patch(ac, pl_old, pl_new)
-          print('patched: live txt proxy dual-source merge (IPv4-first line ordering)')
-          lp = 'app/src/main/java/com/github/tvbox/osc/ui/activity/LivePlayActivity.java'
-          lp1_old = '    public void loadProxyLives(String url) {\n        try {\n            Uri parsedUrl = Uri.parse(url);'
-          lp1_new = '    public void loadProxyLives(String url) {\n        String __proxyUrl = url;\n        try {\n            Uri parsedUrl = Uri.parse(url);'
-          patch(lp, lp1_old, lp1_new)
-          lp2_old = '            OkGo.<String>get(url).execute(new AbsCallback<String>() {'
-          lp2_new = '            OkGo.<String>get(__proxyUrl.startsWith("http://127.0.0.1") ? __proxyUrl : "http://127.0.0.1:9978/proxy?do=live&type=txt&ext=" + Base64.encodeToString(url.getBytes(), Base64.DEFAULT | Base64.URL_SAFE | Base64.NO_WRAP)).execute(new AbsCallback<String>() {'
-          patch(lp, lp2_old, lp2_new)
-          print('patched: live txt fetch via local proxy (multi-URL fallback)')
-          print('patched: live dual-source merge + local proxy routing complete')
-          PYEOF2
-
-      - name: Setup Python
-        uses: actions/setup-python@v7
-        with:
-          python-version: '3.8'
-
-      - name: Install Python dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install lxml ujson pyquery requests jsonpath cachetools pycryptodome beautifulsoup4
-
-      - name: Modify pyramid——build.gradle
-        working-directory: TVBoxOSC
-        run: |
-          sed -i '/buildPython.*python.exe/d' pyramid/build.gradle
-
-      - name: Setup Python local.properties
-        working-directory: TVBoxOSC
-        run: echo "" > local.properties
-
-      - name: Release Apk Sign
-        working-directory: TVBoxOSC
-        run: |
-          signingConfigs='ICAgIHNpZ25pbmdDb25maWdzIHtcCiAgICAgICAgaWYgKHByb2plY3QuaGFzUHJvcGVydHkoIlJFTEVBU0VfU1RPUkVfRklMRSIpKSB7XAogICAgICAgICAgICBteUNvbmZpZyB7XAogICAgICAgICAgICAgICAgc3RvcmVGaWxlIGZpbGUoUkVMRUFTRV9TVE9SRV9GSUxFKVwKICAgICAgICAgICAgICAgIHN0b3JlUGFzc3dvcmQgUkVMRUFTRV9TVE9SRV9QQVNTV09SRFwKICAgICAgICAgICAgICAgIGtleUFsaWFzIFJFTEVBU0VfS0VZX0FMSUFTXAogICAgICAgICAgICAgICAga2V5UGFzc3dvcmQgUkVMRUFTRV9LRVlfUEFTU1dPUkRcCiAgICAgICAgICAgICAgICB2MVNpZ25pbmdFbmFibGVkIHRydWVcCiAgICAgICAgICAgICAgICB2MlNpZ25pbmdFbmFibGVkIHRydWVcCiAgICAgICAgICAgICAgICBlbmFibGVWM1NpZ25pbmcgPSB0cnVlXAogICAgICAgICAgICAgICAgZW5hYmxlVjRTaWduaW5nID0gdHJ1ZVwKICAgICAgICAgICAgfVwKICAgICAgICB9XAogICAgfVwKXA=='
-          signingConfig='ICAgICAgICAgICAgaWYgKHByb2plY3QuaGFzUHJvcGVydHkoIlJFTEVBU0VfU1RPUkVfRklMRSIpKSB7XAogICAgICAgICAgICAgICAgc2lnbmluZ0NvbmZpZyBzaWduaW5nQ29uZmlncy5teUNvbmZpZ1wKICAgICAgICAgICAgfVwK'
-          signingConfigs="$(echo "$signingConfigs" |base64 -d )"
-          signingConfig="$(echo "$signingConfig" |base64 -d )"
-          sed -i -e "/defaultConfig {/i\\$signingConfigs " -e "/debug {/a\\$signingConfig " -e "/release {/a\\$signingConfig " app/build.gradle
-          cp -f ${{ github.workspace }}/.github/workflows/TVBoxOSC.jks app/TVBoxOSC.jks
-          sed -i '$a\RELEASE_STORE_FILE=./TVBoxOSC.jks'     ./gradle.properties
-          sed -i '$a\RELEASE_KEY_ALIAS=TVBoxOSC'            ./gradle.properties
-          sed -i '$a\RELEASE_STORE_PASSWORD=TVBoxOSC'       ./gradle.properties
-          sed -i '$a\RELEASE_KEY_PASSWORD=TVBoxOSC'         ./gradle.properties
-
-      - uses: gradle/actions/setup-gradle@v6.2.0
-
-      - name: Build With Gradle
-        working-directory: TVBoxOSC
-        run: |
-          chmod +x gradlew
-          ./gradlew assemblerelease --build-cache --parallel --daemon --warning-mode all
-
-      - name: Prepare App
-        working-directory: TVBoxOSC
-        run: |
-          rm -rf apk/
-          mkdir -p apk/
-          i=0
-          for file in `find ~ -name "*release*.apk" -print`; do
-            i=$((i+1))
-            mv "$file" "apk/电视简单化_${{ env.tag }}_${i}.apk"
-          done
-
-      - name: Upload App To Artifact
-        uses: actions/upload-artifact@v7
-        with:
-          name: 电视简单化-build
-          path: |
-            TVBoxOSC/apk/*
-
-      - name: Release and Upload Assets
-        uses: ncipollo/release-action@v1
-        with:
-          name: ${{ env.tag }}
-          tag: ${{ env.tag }}
-          body: "电视简单化：内置5条配置源 + 自动故障切换 + 死链冷却"
-          allowUpdates: true
-          artifacts: |
-            TVBoxOSC/apk/*.apk
+name: Build
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Prepare Build Tag
+        run: |
+          echo "tag=$(date +%Y%m%d-%H%M)" >> $GITHUB_ENV
+          echo "commitS=$(date +%Y%m%d%H%M)" >> $GITHUB_ENV
+
+      - name: Checkout Source Code
+        run: |
+          git clone --depth 1 https://github.com/q215613905/TVBoxOS TVBoxOSC
+
+      - name: Extra Modify
+        working-directory: TVBoxOSC
+        run: |
+          echo '修改VersionName'
+          sed -i "/versionName/s#[0-9a-zA-Z_\.\'\"-]\+\$#\'${{ env.tag }}\'#" app/build.gradle
+          sed -i "/android:text=/s#=\"#=\"${{ env.tag }}\\\\n\\\\n#" app/src/main/res/layout/dialog_about.xml
+          echo 'crosswalk源，防挂'
+          if grep -q 'crosswalk' build.gradle; then
+            sed -i "/crosswalk/a\        maven { url 'https://j4uq.github.io/crosswalk/releases/crosswalk/android/maven2' }" build.gradle
+          else
+            sed -i "/jitpack.io/a\        maven { url 'https://j4uq.github.io/crosswalk/releases/crosswalk/android/maven2' }" build.gradle
+          fi
+          echo '注入默认配置(多源) + 自动故障切换 + 死链冷却'
+          python3 - <<'PYEOF'
+          import re
+          def patch(path, old, new, count=1):
+              s = open(path, encoding='utf-8').read()
+              assert old in s, 'anchor not found: %r in %s' % (old[:60], path)
+              s = s.replace(old, new, count)
+              open(path, 'w', encoding='utf-8').write(s)
+          app = 'app/src/main/java/com/github/tvbox/osc/base/App.java'
+          block = '''Hawk.init(this).build();
+                  String defApi = Hawk.get(HawkConfig.API_URL, "");
+                  if (defApi == null || defApi.isEmpty()) {
+                      Hawk.put(HawkConfig.API_URL, "https://qist.wyfc.qzz.io/jsm.json");
+                      java.util.ArrayList<String> defHistory = new java.util.ArrayList<>();
+                      defHistory.add("https://qist.wyfc.qzz.io/jsm.json");
+                      Hawk.put(HawkConfig.API_HISTORY, defHistory);
+                      Hawk.put(HawkConfig.HOME_REC, Integer.valueOf(0));
+                      Hawk.put(HawkConfig.HOME_REC_STYLE, Boolean.TRUE);
+                  }'''
+          patch(app, 'Hawk.init(this).build();', block)
+          sp = 'app/src/main/res/values/strings.xml'
+          s = open(sp, encoding='utf-8').read()
+          s2, n = re.subn(r'(<string name="app_name">)[^<]*(</string>)', r'\g<1>电视简单化\g<2>', s, count=1)
+          assert n == 1, 'app_name not found in strings.xml'
+          open(sp, 'w', encoding='utf-8').write(s2)
+          print('app_name patched -> 电视简单化')
+          ac = 'app/src/main/java/com/github/tvbox/osc/api/ApiConfig.java'
+          helper = '''    private static final java.util.LinkedHashSet<String> failoverTried = new java.util.LinkedHashSet<String>();
+
+              private static final String FAIL_MAP_KEY = "api_fail_map";
+
+              private static java.util.HashMap<String, String> loadFailMap() {
+                  java.util.HashMap<String, String> m = Hawk.get(FAIL_MAP_KEY, new java.util.HashMap<String, String>());
+                  return m == null ? new java.util.HashMap<String, String>() : m;
+              }
+
+              private void recordFail(String url) {
+                  try {
+                      if (url == null || url.trim().isEmpty()) return;
+                      java.util.HashMap<String, String> m = loadFailMap();
+                      String v = m.get(url);
+                      int cnt = 1;
+                      if (v != null) {
+                          int sp = v.indexOf('|');
+                          try { cnt = Integer.parseInt(v.substring(0, sp)) + 1; } catch (Throwable ignored) { cnt = 1; }
+                      }
+                      m.put(url, cnt + "|" + System.currentTimeMillis());
+                      Hawk.put(FAIL_MAP_KEY, m);
+                      LOG.i("echo-config dead-link mark " + url + " failCount=" + cnt + " cooldown=" + cooldownMinutes(cnt) + "min");
+                  } catch (Throwable th) {
+                      th.printStackTrace();
+                  }
+              }
+
+              private void recordSuccess(String url) {
+                  try {
+                      if (url == null || url.trim().isEmpty()) return;
+                      java.util.HashMap<String, String> m = loadFailMap();
+                      if (m.remove(url) != null) {
+                          Hawk.put(FAIL_MAP_KEY, m);
+                          LOG.i("echo-config dead-link recovered " + url);
+                      }
+                  } catch (Throwable th) {
+                      th.printStackTrace();
+                  }
+              }
+
+              private static long cooldownMinutes(int failCount) {
+                  if (failCount <= 1) return 10L;
+                  if (failCount == 2) return 60L;
+                  if (failCount == 3) return 360L;
+                  return 1440L;
+              }
+
+              private boolean isInCooldown(String url) {
+                  try {
+                      java.util.HashMap<String, String> m = loadFailMap();
+                      String v = m.get(url);
+                      if (v == null) return false;
+                      int sp = v.indexOf('|');
+                      if (sp < 0) return false;
+                      int cnt = Integer.parseInt(v.substring(0, sp));
+                      long last = Long.parseLong(v.substring(sp + 1));
+                      return (System.currentTimeMillis() - last) < cooldownMinutes(cnt) * 60000L;
+                  } catch (Throwable th) {
+                      return false;
+                  }
+              }
+
+              private String pickLeastDead() {
+                  try {
+                      String current = Hawk.get(HawkConfig.API_URL, "");
+                      java.util.ArrayList<String> history = Hawk.get(HawkConfig.API_HISTORY, new java.util.ArrayList<String>());
+                      java.util.HashMap<String, String> m = loadFailMap();
+                      String best = null;
+                      long bestLast = Long.MAX_VALUE;
+                      for (String h : history) {
+                          String u = h;
+                          int sp = h.indexOf('\\t');
+                          if (sp >= 0) u = h.substring(sp + 1);
+                          u = u.trim();
+                          if (u.isEmpty() || u.equals(current) || failoverTried.contains(u)) continue;
+                          String v = m.get(u);
+                          long last = 0L;
+                          if (v != null) {
+                              int p = v.indexOf('|');
+                              if (p >= 0) {
+                                  try { last = Long.parseLong(v.substring(p + 1)); } catch (Throwable ignored) { }
+                              }
+                          }
+                          if (best == null || last < bestLast) {
+                              best = u;
+                              bestLast = last;
+                          }
+                      }
+                      return best;
+                  } catch (Throwable th) {
+                      th.printStackTrace();
+                      return null;
+                  }
+              }
+
+              private boolean tryFailover(LoadConfigCallback callback, Activity activity) {
+                  try {
+                      String current = Hawk.get(HawkConfig.API_URL, "");
+                      recordFail(current);
+                      java.util.ArrayList<String> history = Hawk.get(HawkConfig.API_HISTORY, new java.util.ArrayList<String>());
+                      for (String h : history) {
+                          String u = h;
+                          int sp = h.indexOf('\\t');
+                          if (sp >= 0) u = h.substring(sp + 1);
+                          u = u.trim();
+                          if (u.isEmpty() || u.equals(current) || failoverTried.contains(u)) continue;
+                          if (isInCooldown(u)) {
+                              LOG.i("echo-config skip cooldown " + u);
+                              continue;
+                          }
+                          failoverTried.add(u);
+                          LOG.i("echo-config failover " + current + " -> " + u);
+                          Hawk.put(HawkConfig.API_URL, u);
+                          loadConfig(false, callback, activity);
+                          return true;
+                      }
+                      String least = pickLeastDead();
+                      if (least != null && !least.equals(current) && !failoverTried.contains(least)) {
+                          failoverTried.add(least);
+                          LOG.i("echo-config failover-cooldown-fallback " + current + " -> " + least);
+                          Hawk.put(HawkConfig.API_URL, least);
+                          loadConfig(false, callback, activity);
+                          return true;
+                      }
+                  } catch (Throwable th) {
+                      th.printStackTrace();
+                  }
+                  failoverTried.clear();
+                  return false;
+              }
+
+              private boolean switchApiCollectionIfNeeded(String apiUrl, String jsonStr) {'''
+          patch(ac, '    private boolean switchApiCollectionIfNeeded(String apiUrl, String jsonStr) {', helper)
+          patch(ac, 'callback.error("拉取配置失败\\n" + error);', 'if (tryFailover(callback, activity)) return;\n                callback.error("拉取配置失败\\n" + error);')
+          patch(ac, 'callback.error("配置解析失败");', 'if (tryFailover(callback, activity)) return;\n                    callback.error("配置解析失败");')
+          patch(ac, 'parseJson(apiUrl, json);\n                callback.success();', 'parseJson(apiUrl, json);\n                failoverTried.clear(); recordSuccess(apiUrl);\n                callback.success();')
+          patch(ac, 'FileUtils.saveCache(cache,json);\n                    callback.success();', 'FileUtils.saveCache(cache,json);\n                    failoverTried.clear(); recordSuccess(apiUrl);\n                    callback.success();')
+          patch(ac, 'parseJson(apiUrl, json);\n                        callback.success();', 'parseJson(apiUrl, json);\n                        failoverTried.clear(); recordSuccess(apiUrl);\n                        callback.success();')
+          jfix_a_old = '                            } else {\n                                callback.error("md5缓存失效");\n                            }'
+          jfix_a_new = '                            } else {\n                                if (retryCount < LOAD_JAR_MAX_RETRY) {\n                                    if (cache.exists() && !cache.delete()) {\n                                        LOG.i("echo---delete bad jar cache failed:" + cache.getAbsolutePath());\n                                    }\n                                    LOG.i("echo---retry load jar reason:cache_load_false url:" + spider + " retry:" + (retryCount + 1));\n                                    loadJar(false, spider, callback, retryCount + 1);\n                                } else {\n                                    callback.error("md5缓存失效");\n                                }\n                            }'
+          patch(ac, jfix_a_old, jfix_a_new)
+          jfix_b_old = '                if (jarLoader.load(cache.getAbsolutePath())) {\n                    callback.success();\n                } else {\n                    callback.error("md5缓存失效");\n                }'
+          jfix_b_new = '                if (jarLoader.load(cache.getAbsolutePath())) {\n                    callback.success();\n                } else {\n                    if (retryCount < LOAD_JAR_MAX_RETRY) {\n                        if (cache.exists() && !cache.delete()) {\n                            LOG.i("echo---delete bad jar cache failed:" + cache.getAbsolutePath());\n                        }\n                        LOG.i("echo---retry load jar reason:cache_load_false url:" + spider + " retry:" + (retryCount + 1));\n                        loadJar(false, spider, callback, retryCount + 1);\n                    } else {\n                        callback.error("md5缓存失效");\n                    }\n                }'
+          patch(ac, jfix_b_old, jfix_b_new)
+          bg = 'app/build.gradle'
+          patch(bg, "applicationId 'com.github.tvbox.osc.jun'", "applicationId 'com.github.tvbox.osc'")
+          print('patched: applicationId -> com.github.tvbox.osc (protected-jar whitelist)')
+          lj_old = '    public void loadJar(boolean useCache, String spider, LoadConfigCallback callback) {'
+          lj_new = '    public void loadJar(boolean useCache, String spider, LoadConfigCallback callback) {\n        boolean skipJarLoad = true;\n        if (skipJarLoad) { LOG.i("echo---skip-jar-load url:" + spider); callback.success(); return; }'
+          patch(ac, lj_old, lj_new)
+          print('patched: skip jar load (anti-hang jar kills host process)')
+          flt_old = '            if (!obj.has("key") || !obj.has("type") || !obj.has("api")) {\n                LOG.i("echo-skip incomplete site config: " + obj);\n                continue;\n            }'
+          flt_new = '            if (!obj.has("key") || !obj.has("type") || !obj.has("api")) {\n                LOG.i("echo-skip incomplete site config: " + obj);\n                continue;\n            }\n            String __api = obj.get("api").getAsString().trim();\n            if (__api.startsWith("csp_")) {\n                LOG.i("echo-skip jar-dependent site api:" + __api);\n                continue;\n            }'
+          patch(ac, flt_old, flt_new)
+          print('patched: filter jar-dependent sites (skip csp_ jar sites only, keep cms/js/py)')
+          print('patched: config lives pass-through (merge/fallback handled in live proxy)')
+          print('patched: default multi-source + auto failover + dead-link cooldown + jar-cache self-heal')
+          PYEOF
+
+      - name: Extra Modify Live
+        working-directory: TVBoxOSC
+        run: |
+          echo '注入直播双源合并+本地代理回退'
+          python3 - <<'PYEOF2'
+          def patch(path, old, new, count=1):
+              s = open(path, encoding='utf-8').read()
+              assert old in s, 'anchor not found: %r in %s' % (old[:60], path)
+              s = s.replace(old, new, count)
+              open(path, 'w', encoding='utf-8').write(s)
+          ac = 'app/src/main/java/com/github/tvbox/osc/api/ApiConfig.java'
+          helper_body = r'''    private static String liveM3uKey(String name) {
+              String n = name.trim();
+              java.util.regex.Matcher m = java.util.regex.Pattern.compile("(?i)cctv-?\\s*(\\d+)\\s*(\\+)?").matcher(n);
+              if (m.find()) {
+                  return "CCTV" + m.group(1) + (m.group(2) != null ? "+" : "");
+              }
+              return n.replaceAll("(?i)[\\s:|]*(HD|高清|超清|蓝光)$", "").trim();
+          }
+
+              private static int liveUrlScore(String url, boolean fromPrimary) {
+                  if (url.indexOf("://[") >= 0) return 3;
+                  String host = "";
+                  try {
+                      host = new java.net.URL(url).getHost();
+                  } catch (Throwable ignored) {
+                  }
+                  if (host.contains("63.141.230.178") || host.contains("38.75.136.137") || host.contains("107.150.60.122") || host.contains("198.204.228.26") || host.contains("204.12.221.218") || host.contains("104.152.209.49")) return 4;
+                  boolean bareIp = host.matches("\\d+\\.\\d+\\.\\d+\\.\\d+");
+                  if (bareIp) return 2;
+                  return fromPrimary ? 1 : 0;
+              }
+
+              private static String mergeLiveM3u(byte[] primary, byte[] secondary) {
+                  try {
+                      if (primary != null) {
+                          String ptxt = new String(primary, "UTF-8");
+                          if (ptxt.indexOf("#EXTINF") < 0 && ptxt.indexOf("#EXTM3U") < 0) return null;
+                      }
+                      java.util.LinkedHashMap<String, java.util.ArrayList<String[]>> chans = new java.util.LinkedHashMap<String, java.util.ArrayList<String[]>>();
+                      java.util.LinkedHashMap<String, String[]> meta = new java.util.LinkedHashMap<String, String[]>();
+                      java.util.ArrayList<String> order = new java.util.ArrayList<String>();
+                      byte[][] data = {primary, secondary};
+                      for (int k = 0; k < 2; k++) {
+                          if (data[k] == null) continue;
+                          String[] lines = new String(data[k], "UTF-8").split("\n");
+                          String attr = null;
+                          String name = null;
+                          for (int i = 0; i < lines.length; i++) {
+                              String line = lines[i].trim();
+                              if (line.startsWith("#EXTINF")) {
+                                  int ci = line.lastIndexOf(',');
+                                  name = ci >= 0 ? line.substring(ci + 1).trim() : "";
+                                  attr = line;
+                              } else if (line.startsWith("http") && name != null && !name.isEmpty()) {
+                                  String key = liveM3uKey(name);
+                                  if (k == 1) {
+                                      boolean keep = key.startsWith("CCTV") || key.endsWith("卫视");
+                                      if (!keep) {
+                                          name = null;
+                                          continue;
+                                      }
+                                  }
+                                  java.util.ArrayList<String[]> list = chans.get(key);
+                                  if (list == null) {
+                                      list = new java.util.ArrayList<String[]>();
+                                      chans.put(key, list);
+                                      order.add(key);
+                                  }
+                                  boolean dup = false;
+                                  for (String[] e : list) {
+                                      if (e[1].equals(line)) {
+                                          dup = true;
+                                          break;
+                                      }
+                                  }
+                                  if (!dup) list.add(new String[]{String.valueOf(liveUrlScore(line, k == 0)), line});
+                                  if (k == 0 || !meta.containsKey(key)) meta.put(key, new String[]{attr, name});
+                                  name = null;
+                              }
+                          }
+                      }
+                      if (chans.isEmpty()) return null;
+                      StringBuilder sb = new StringBuilder();
+                      sb.append("#EXTM3U x-tvg-url=\"https://live.fanmingming.cn/e.xml\"\n");
+                      for (String key : order) {
+                          String[] m = meta.get(key);
+                          java.util.ArrayList<String[]> list = chans.get(key);
+                          java.util.Collections.sort(list, new java.util.Comparator<String[]>() {
+                              public int compare(String[] x, String[] y) {
+                                  return Integer.parseInt(x[0]) - Integer.parseInt(y[0]);
+                              }
+                          });
+                          boolean first = true;
+                          String grp = "";
+                          if (m[0] != null) {
+                              java.util.regex.Matcher gm = java.util.regex.Pattern.compile("group-title=\"(.*?)\"").matcher(m[0]);
+                              if (gm.find()) grp = " group-title=\"" + gm.group(1) + "\"";
+                          }
+                          for (String[] e : list) {
+                              if (first) {
+                                  sb.append(m[0] != null ? m[0] : ("#EXTINF:-1 ," + m[1])).append("\n");
+                                  first = false;
+                              } else {
+                                  sb.append("#EXTINF:-1 tvg-name=\"").append(m[1]).append("\"").append(grp).append(",").append(m[1]).append("\n");
+                              }
+                              sb.append(e[1]).append("\n");
+                          }
+                      }
+                      return sb.toString();
+                  } catch (Throwable th) {
+                      LOG.e("echo-merge-live error: " + th.getMessage());
+                      return null;
+                  }
+              }'''
+          helper_new = helper_body + '\n\n    public Object[] proxyLocal(Map<String, String> param) {'
+          patch(ac, '    public Object[] proxyLocal(Map<String, String> param) {', helper_new)
+          print('patched: live m3u merge helpers (dual-source, quality-ordered lines)')
+          pl_old = '        String siteKey = param.get("siteKey");\n        String action = param.get("do");'
+          pl_new = r'''        String siteKey = param.get("siteKey");
+          String action = param.get("do");
+          if ("live".equals(action) && "txt".equals(param.get("type"))) {
+              try {
+                  java.util.ArrayList<String[]> tryUrls = new java.util.ArrayList<String[]>();
+                  String ext = param.get("ext");
+                  if (ext != null && !ext.isEmpty()) {
+                      String liveUrl = new String(Base64.decode(ext, Base64.DEFAULT | Base64.URL_SAFE | Base64.NO_WRAP), "UTF-8");
+                      if (liveUrl.startsWith("http")) tryUrls.add(new String[]{"a", liveUrl});
+                  }
+                  tryUrls.add(new String[]{"a", "https://gh-proxy.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/m3u/ipv6.m3u"});
+                  tryUrls.add(new String[]{"a", "https://iptv-org.github.io/iptv/countries/cn.m3u"});
+                  tryUrls.add(new String[]{"b", "https://gh-proxy.com/https://raw.githubusercontent.com/Guovin/iptv-api/gd/output/result.m3u"});
+                  tryUrls.add(new String[]{"b", "https://raw.githubusercontent.com/Guovin/iptv-api/gd/output/result.m3u"});
+                  byte[] listA = null;
+                  byte[] listB = null;
+                  for (String[] sd : tryUrls) {
+                      boolean isA = "a".equals(sd[0]);
+                      if ((isA && listA != null) || (!isA && listB != null)) continue;
+                      try {
+                          LOG.i("echo-live-proxy try " + sd[1]);
+                          java.net.HttpURLConnection conn = (java.net.HttpURLConnection) new java.net.URL(sd[1]).openConnection();
+                          conn.setConnectTimeout(6000);
+                          conn.setReadTimeout(12000);
+                          conn.setRequestProperty("User-Agent", "okhttp/3.8.1");
+                          java.io.InputStream in = conn.getInputStream();
+                          java.io.ByteArrayOutputStream bos = new java.io.ByteArrayOutputStream();
+                          byte[] buf = new byte[8192];
+                          int n;
+                          while ((n = in.read(buf)) > 0) bos.write(buf, 0, n);
+                          in.close();
+                          byte[] body = bos.toByteArray();
+                          if (body.length > 100) {
+                              if (isA) listA = body; else listB = body;
+                              LOG.i("echo-live-proxy ok list" + sd[0] + " url:" + sd[1] + " len:" + body.length);
+                          }
+                      } catch (Throwable th2) {
+                          LOG.e("echo-live-proxy try fail " + sd[1] + ": " + th2.getMessage());
+                      }
+                  }
+                  String merged = mergeLiveM3u(listA, listB);
+                  if (merged != null && merged.length() > 100) {
+                      LOG.i("echo-live-proxy merged len:" + merged.length());
+                      return new Object[]{200, "text/plain", new java.io.ByteArrayInputStream(merged.getBytes("UTF-8"))};
+                  }
+                  byte[] fallback = listA != null ? listA : listB;
+                  if (fallback != null) return new Object[]{200, "text/plain", new java.io.ByteArrayInputStream(fallback)};
+              } catch (Throwable th) {
+                  LOG.e("echo-live-proxy error: " + th.getMessage());
+              }
+          }'''
+          patch(ac, pl_old, pl_new)
+          print('patched: live txt proxy dual-source merge (IPv4-first line ordering)')
+          lp = 'app/src/main/java/com/github/tvbox/osc/ui/activity/LivePlayActivity.java'
+          lp1_old = '    public void loadProxyLives(String url) {\n        try {\n            Uri parsedUrl = Uri.parse(url);'
+          lp1_new = '    public void loadProxyLives(String url) {\n        String __proxyUrl = url;\n        try {\n            Uri parsedUrl = Uri.parse(url);'
+          patch(lp, lp1_old, lp1_new)
+          lp2_old = '            OkGo.<String>get(url).execute(new AbsCallback<String>() {'
+          lp2_new = '            OkGo.<String>get(__proxyUrl.startsWith("http://127.0.0.1") ? __proxyUrl : "http://127.0.0.1:9978/proxy?do=live&type=txt&ext=" + Base64.encodeToString(url.getBytes(), Base64.DEFAULT | Base64.URL_SAFE | Base64.NO_WRAP)).execute(new AbsCallback<String>() {'
+          patch(lp, lp2_old, lp2_new)
+          print('patched: live txt fetch via local proxy (multi-URL fallback)')
+          print('patched: live dual-source merge + local proxy routing complete')
+          PYEOF2
+
+      - name: Setup Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.8'
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install lxml ujson pyquery requests jsonpath cachetools pycryptodome beautifulsoup4
+
+      - name: Modify pyramid——build.gradle
+        working-directory: TVBoxOSC
+        run: |
+          sed -i '/buildPython.*python.exe/d' pyramid/build.gradle
+
+      - name: Setup Python local.properties
+        working-directory: TVBoxOSC
+        run: echo "" > local.properties
+
+      - name: Release Apk Sign
+        working-directory: TVBoxOSC
+        run: |
+          signingConfigs='ICAgIHNpZ25pbmdDb25maWdzIHtcCiAgICAgICAgaWYgKHByb2plY3QuaGFzUHJvcGVydHkoIlJFTEVBU0VfU1RPUkVfRklMRSIpKSB7XAogICAgICAgICAgICBteUNvbmZpZyB7XAogICAgICAgICAgICAgICAgc3RvcmVGaWxlIGZpbGUoUkVMRUFTRV9TVE9SRV9GSUxFKVwKICAgICAgICAgICAgICAgIHN0b3JlUGFzc3dvcmQgUkVMRUFTRV9TVE9SRV9QQVNTV09SRFwKICAgICAgICAgICAgICAgIGtleUFsaWFzIFJFTEVBU0VfS0VZX0FMSUFTXAogICAgICAgICAgICAgICAga2V5UGFzc3dvcmQgUkVMRUFTRV9LRVlfUEFTU1dPUkRcCiAgICAgICAgICAgICAgICB2MVNpZ25pbmdFbmFibGVkIHRydWVcCiAgICAgICAgICAgICAgICB2MlNpZ25pbmdFbmFibGVkIHRydWVcCiAgICAgICAgICAgICAgICBlbmFibGVWM1NpZ25pbmcgPSB0cnVlXAogICAgICAgICAgICAgICAgZW5hYmxlVjRTaWduaW5nID0gdHJ1ZVwKICAgICAgICAgICAgfVwKICAgICAgICB9XAogICAgfVwKXA=='
+          signingConfig='ICAgICAgICAgICAgaWYgKHByb2plY3QuaGFzUHJvcGVydHkoIlJFTEVBU0VfU1RPUkVfRklMRSIpKSB7XAogICAgICAgICAgICAgICAgc2lnbmluZ0NvbmZpZyBzaWduaW5nQ29uZmlncy5teUNvbmZpZ1wKICAgICAgICAgICAgfVwK'
+          signingConfigs="$(echo "$signingConfigs" |base64 -d )"
+          signingConfig="$(echo "$signingConfig" |base64 -d )"
+          sed -i -e "/defaultConfig {/i\\$signingConfigs " -e "/debug {/a\\$signingConfig " -e "/release {/a\\$signingConfig " app/build.gradle
+          cp -f ${{ github.workspace }}/.github/workflows/TVBoxOSC.jks app/TVBoxOSC.jks
+          sed -i '$a\RELEASE_STORE_FILE=./TVBoxOSC.jks'     ./gradle.properties
+          sed -i '$a\RELEASE_KEY_ALIAS=TVBoxOSC'            ./gradle.properties
+          sed -i '$a\RELEASE_STORE_PASSWORD=TVBoxOSC'       ./gradle.properties
+          sed -i '$a\RELEASE_KEY_PASSWORD=TVBoxOSC'         ./gradle.properties
+
+      - uses: gradle/actions/setup-gradle@v6.2.0
+
+      - name: Build With Gradle
+        working-directory: TVBoxOSC
+        run: |
+          chmod +x gradlew
+          ./gradlew assemblerelease --build-cache --parallel --daemon --warning-mode all
+
+      - name: Prepare App
+        working-directory: TVBoxOSC
+        run: |
+          rm -rf apk/
+          mkdir -p apk/
+          i=0
+          for file in `find ~ -name "*release*.apk" -print`; do
+            i=$((i+1))
+            mv "$file" "apk/电视简单化_${{ env.tag }}_${i}.apk"
+          done
+
+      - name: Upload App To Artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: 电视简单化-build
+          path: |
+            TVBoxOSC/apk/*
+
+      - name: Release and Upload Assets
+        uses: ncipollo/release-action@v1
+        with:
+          name: ${{ env.tag }}
+          tag: ${{ env.tag }}
+          body: "电视简单化：内置5条配置源 + 自动故障切换 + 死链冷却"
+          allowUpdates: true
+          artifacts: |
+            TVBoxOSC/apk/*.apk
