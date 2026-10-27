@@ -54,8 +54,16 @@ jobs:
                       defHistory.add("https://raw.liucn.cc/box/m.json");
                       defHistory.add("https://6800.kstore.vip/fish.json");
                       Hawk.put(HawkConfig.API_HISTORY, defHistory);
+                      Hawk.put(HawkConfig.HOME_REC, Integer.valueOf(0));
+                      Hawk.put(HawkConfig.HOME_REC_STYLE, Boolean.TRUE);
                   }'''
           patch(app, 'Hawk.init(this).build();', block)
+          sp = 'app/src/main/res/values/strings.xml'
+          s = open(sp, encoding='utf-8').read()
+          s2, n = re.subn(r'(<string name="app_name">)[^<]*(</string>)', r'\g<1>电视简单化\g<2>', s, count=1)
+          assert n == 1, 'app_name not found in strings.xml'
+          open(sp, 'w', encoding='utf-8').write(s2)
+          print('app_name patched -> 电视简单化')
           ac = 'app/src/main/java/com/github/tvbox/osc/api/ApiConfig.java'
           helper = '''    private static final java.util.LinkedHashSet<String> failoverTried = new java.util.LinkedHashSet<String>();
 
@@ -247,13 +255,13 @@ jobs:
           i=0
           for file in `find ~ -name "*release*.apk" -print`; do
             i=$((i+1))
-            mv "$file" "apk/TVBox_${{ env.tag }}_${i}.apk"
+            mv "$file" "apk/电视简单化_${{ env.tag }}_${i}.apk"
           done
 
       - name: Upload App To Artifact
         uses: actions/upload-artifact@v7
         with:
-          name: TVBox-build
+          name: 电视简单化-build
           path: |
             TVBoxOSC/apk/*
 
@@ -262,7 +270,7 @@ jobs:
         with:
           name: ${{ env.tag }}
           tag: ${{ env.tag }}
-          body: "自用版：内置5条配置源 + 自动故障切换"
+          body: "电视简单化：内置5条配置源 + 自动故障切换 + 死链冷却"
           allowUpdates: true
           artifacts: |
             TVBoxOSC/apk/*.apk
