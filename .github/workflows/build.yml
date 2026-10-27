@@ -213,9 +213,7 @@ jobs:
           patch(bg, "applicationId 'com.github.tvbox.osc.jun'", "applicationId 'com.github.tvbox.osc'")
           print('patched: applicationId -> com.github.tvbox.osc (protected-jar whitelist)')
           lj_old = '    public void loadJar(boolean useCache, String spider, LoadConfigCallback callback) {'
-          lj_new = '''    public void loadJar(boolean useCache, String spider, LoadConfigCallback callback) {
-        boolean skipJarLoad = true;
-        if (skipJarLoad) { LOG.i("echo---skip-jar-load url:" + spider); callback.success(); return; }'''
+          lj_new = '    public void loadJar(boolean useCache, String spider, LoadConfigCallback callback) {\n        boolean skipJarLoad = true;\n        if (skipJarLoad) { LOG.i("echo---skip-jar-load url:" + spider); callback.success(); return; }'
           patch(ac, lj_old, lj_new)
           print('patched: skip jar load (anti-hang jar kills host process)')
           patch(app, 'Hawk.put(HawkConfig.API_URL, "https://qist.wyfc.qzz.io/jsm.json");', 'Hawk.put(HawkConfig.API_URL, "https://6800.kstore.vip/fish.json");')
