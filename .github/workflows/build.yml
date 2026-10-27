@@ -224,7 +224,39 @@ jobs:
           la_old = '    public void loadLiveApi(JsonObject livesOBJ) {\n        try {\n            LOG.i("echo-loadLiveApi");'
           la_new = '    public void loadLiveApi(JsonObject livesOBJ) {\n        try {\n            LOG.i("echo-loadLiveApi");\n            livesOBJ = gson.fromJson("{\\"name\\":\\"央视卫视直播\\",\\"type\\":0,\\"url\\":\\"https://live.fanmingming.com/tv/m3u/ipv6.m3u\\",\\"playerType\\":1}", JsonObject.class);'
           patch(ac, la_old, la_new)
-          print('patched: loadLiveApi entry forced to fanmingming (covers all live load paths)')
+          print('patched: loadLiveApi entry forced to fanmingming (covers all live load paths)')
+          pl_old = '        String siteKey = param.get("siteKey");\n        String action = param.get("do");'
+          pl_new = ('        String siteKey = param.get("siteKey");\n'
+                    '        String action = param.get("do");\n'
+                    '        if ("live".equals(action) && "txt".equals(param.get("type"))) {\n'
+                    '            try {\n'
+                    '                String ext = param.get("ext");\n'
+                    '                if (ext != null && !ext.isEmpty()) {\n'
+                    '                    String liveUrl = new String(Base64.decode(ext, Base64.DEFAULT | Base64.URL_SAFE | Base64.NO_WRAP), "UTF-8");\n'
+                    '                    if (liveUrl.startsWith("http")) {\n'
+                    '                        java.net.HttpURLConnection conn = (java.net.HttpURLConnection) new java.net.URL(liveUrl).openConnection();\n'
+                    '                        conn.setConnectTimeout(15000);\n'
+                    '                        conn.setReadTimeout(15000);\n'
+                    '                        conn.setRequestProperty("User-Agent", "okhttp/3.8.1");\n'
+                    '                        java.io.InputStream in = conn.getInputStream();\n'
+                    '                        java.io.ByteArrayOutputStream bos = new java.io.ByteArrayOutputStream();\n'
+                    '                        byte[] buf = new byte[8192];\n'
+                    '                        int n;\n'
+                    '                        while ((n = in.read(buf)) > 0) bos.write(buf, 0, n);\n'
+                    '                        in.close();\n'
+                    '                        byte[] body = bos.toByteArray();\n'
+                    '                        if (body.length > 0) {\n'
+                    '                            LOG.i("echo-live-proxy ok len:" + body.length);\n'
+                    '                            return new Object[]{200, "text/plain", new java.io.ByteArrayInputStream(body)};\n'
+                    '                        }\n'
+                    '                    }\n'
+                    '                }\n'
+                    '            } catch (Throwable th) {\n'
+                    '                LOG.e("echo-live-proxy error: " + th.getMessage());\n'
+                    '            }\n'
+                    '        }')
+          patch(ac, pl_old, pl_new)
+          print('patched: live txt proxy direct-fetch (no jar needed)')
           print('patched: default multi-source + auto failover + dead-link cooldown + jar-cache self-heal')
           PYEOF
 
