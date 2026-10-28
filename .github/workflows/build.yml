@@ -86,6 +86,37 @@ jobs:
           open(p, 'w', encoding='utf-8').write(s)
           print('jarloader patched, indent=%r' % ind)
           PYEOF
+          echo 'HomeActivity: 6h 内优先用本地配置缓存（开屏不再每次等网络）'
+          python3 - <<'PYEOF'
+          import sys
+          p = 'app/src/main/java/com/github/tvbox/osc/ui/activity/HomeActivity.java'
+          s = open(p, encoding='utf-8').read()
+          if 'FAST_START_CACHE_TTL' in s:
+              print('home cache patch already applied')
+              sys.exit(0)
+          anchor = '            useCacheConfig = bundle.getBoolean("useCache", false);\n        }\n'
+          if anchor not in s:
+              print('HOME-ANCHOR-MISS head=%r' % s[:300])
+              sys.exit(1)
+          inject = anchor + '''        // FAST_START_CACHE_TTL: 6 小时内直接用本地配置缓存，省掉开屏 1.5s 的网络等待
+        if (!useCacheConfig) {
+            try {
+                String _api = Hawk.get(HawkConfig.API_URL, "");
+                if (!_api.isEmpty()) {
+                    File _cache = new File(com.github.tvbox.osc.base.App.getInstance().getFilesDir().getAbsolutePath() + "/" + MD5.encode(_api));
+                    long FAST_START_CACHE_TTL = 6L * 60L * 60L * 1000L;
+                    if (_cache.exists() && System.currentTimeMillis() - _cache.lastModified() < FAST_START_CACHE_TTL) {
+                        useCacheConfig = true;
+                    }
+                }
+            } catch (Throwable ignored) {
+            }
+        }
+'''
+          s = s.replace(anchor, inject, 1)
+          open(p, 'w', encoding='utf-8').write(s)
+          print('home cache-first patched')
+          PYEOF
 
       - name: Setup Python
         uses: actions/setup-python@v7
