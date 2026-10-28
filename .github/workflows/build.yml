@@ -427,8 +427,8 @@ jobs:
                       try {
                           LOG.i("echo-live-proxy try " + sd[1]);
                           java.net.HttpURLConnection conn = (java.net.HttpURLConnection) new java.net.URL(sd[1]).openConnection();
-                          conn.setConnectTimeout(6000);
-                          conn.setReadTimeout(12000);
+                          conn.setConnectTimeout(2500);
+                          conn.setReadTimeout(9000);
                           conn.setRequestProperty("User-Agent", "okhttp/3.8.1");
                           java.io.InputStream in = conn.getInputStream();
                           java.io.ByteArrayOutputStream bos = new java.io.ByteArrayOutputStream();
@@ -458,6 +458,13 @@ jobs:
           }'''
           patch(ac, pl_old, pl_new)
           print('patched: live txt proxy dual-source merge (IPv4-first line ordering)')
+          print('patched: live source fast-fail (connect 2.5s / read 9s, dead source no longer stalls 6s)')
+          ig = 'app/src/main/res/layout/item_grid.xml'
+          s = open(ig, encoding='utf-8').read()
+          s2 = s.replace('android:ellipsize="marquee"', 'android:ellipsize="end"', 1)
+          assert s2 != s, 'marquee anchor not found'
+          open(ig, 'w', encoding='utf-8').write(s2)
+          print('patched: grid title marquee off (no endless repaint while focused)')
           lp = 'app/src/main/java/com/github/tvbox/osc/ui/activity/LivePlayActivity.java'
           lp1_old = '    public void loadProxyLives(String url) {\n        try {\n            Uri parsedUrl = Uri.parse(url);'
           lp1_new = '    public void loadProxyLives(String url) {\n        String __proxyUrl = url;\n        try {\n            Uri parsedUrl = Uri.parse(url);'
