@@ -98,21 +98,21 @@ jobs:
           if anchor not in s:
               print('HOME-ANCHOR-MISS head=%r' % s[:300])
               sys.exit(1)
-          inject = anchor + '''        // FAST_START_CACHE_TTL: 6 小时内直接用本地配置缓存，省掉开屏 1.5s 的网络等待
-        if (!useCacheConfig) {
-            try {
-                String _api = Hawk.get(HawkConfig.API_URL, "");
-                if (!_api.isEmpty()) {
-                    File _cache = new File(com.github.tvbox.osc.base.App.getInstance().getFilesDir().getAbsolutePath() + "/" + MD5.encode(_api));
-                    long FAST_START_CACHE_TTL = 6L * 60L * 60L * 1000L;
-                    if (_cache.exists() && System.currentTimeMillis() - _cache.lastModified() < FAST_START_CACHE_TTL) {
-                        useCacheConfig = true;
-                    }
-                }
-            } catch (Throwable ignored) {
-            }
-        }
-'''
+          inject = anchor + (
+              '        // FAST_START_CACHE_TTL: 6h 内直接用本地配置缓存\n'
+              '        if (!useCacheConfig) {\n'
+              '            try {\n'
+              '                String _api = Hawk.get(HawkConfig.API_URL, "");\n'
+              '                if (!_api.isEmpty()) {\n'
+              '                    File _cache = new File(com.github.tvbox.osc.base.App.getInstance().getFilesDir().getAbsolutePath() + "/" + MD5.encode(_api));\n'
+              '                    long FAST_START_CACHE_TTL = 6L * 60L * 60L * 1000L;\n'
+              '                    if (_cache.exists() && System.currentTimeMillis() - _cache.lastModified() < FAST_START_CACHE_TTL) {\n'
+              '                        useCacheConfig = true;\n'
+              '                    }\n'
+              '                }\n'
+              '            } catch (Throwable ignored) {\n'
+              '            }\n'
+              '        }\n')
           s = s.replace(anchor, inject, 1)
           open(p, 'w', encoding='utf-8').write(s)
           print('home cache-first patched')
