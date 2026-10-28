@@ -3,7 +3,10 @@
 
 规则：
   * 只巡检 CMS 接口站（type 0/1，api 为 http(s)）；type3 脚本站不动；
-  * 连续 2 次巡检失败才剔除，避免瞬时抖动误杀；
+  * 连续 3 次巡检失败才剔除，避免瞬时抖动误杀；
+  * 本地实测通过但境外 runner 不可达的站（PROTECTED）连续 9 次失败才剔除——
+    运行器在境外，与中国宽带的判定天然不一致，不能拿它当唯一裁判；
+  * 剔除后若存活站少于 MIN_CMS，按历史失败次数从少到多回补，永不清空首页；
   * 候选池（config/vod_candidates.json）里三级全通且响应 < 4s 的自动补入；
   * CMS 站按实测耗时排序后重写 config/jsm.json。
 """
@@ -26,7 +29,18 @@ KEYWORD = '庆余年'
 TIMEOUT = 8
 MAX_CMS = 40
 AUTO_ADD_CANDIDATES = False
-DEFAULT_SITE = '影视 · 新浪'  # 首页默认站固定，避免每日重排导致首页站源跳变
+DROP_AFTER = 3        # 连续失败几次才剔除
+MIN_CMS = 12          # 存活站下限：低于此数就回补，避免首页被削空
+DEFAULT_SITE = '影视 · 暴風'  # 首页默认站固定，避免每日重排导致首页站源跳变
+
+# 国内实测三级全通、但 GitHub runner（境外）经常连不上的站：
+# 阈值放宽到 DROP_AFTER * 3，防止「境外 runner 判死、国内其实好好的」被误杀。
+PROTECTED = {
+    'bfzyapi.com/api.php/provide/vod',
+    'ffzy5.tv/api.php/provide/vod',
+    'tyyszy.com/api.php/provide/vod',
+    'caiji.dyttzyapi.com/api.php/provide/vod',
+}
 
 
 def fetch(url, maxbytes=262144, timeout=TIMEOUT):
@@ -137,7 +151,13 @@ def main():
             stats = json.load(io.open(STATS, encoding='utf-8'))
         except Exception:
             stats = {}
-    seen = {s['api']: s for s in stats.get('sites', {})}
+    # vod_stats.json 的 sites 是 {norm(api): record} 字典；
+    # 旧版本曾写成列表，两种都兼容，避免整个巡检在读取历史成绩时崩掉。
+    raw_sites = stats.get('sites', {})
+    if isinstance(raw_sites, dict):
+        seen = dict(raw_sites)
+    else:
+        seen = {norm(s.get('api', '')): s for s in raw_sites if isinstance(s, dict)}
 
     cms = [s for s in cfg['sites'] if s.get('type') in (0, 1)
            and isinstance(s.get('api'), str) and s['api'].startswith('http')]
@@ -177,15 +197,16 @@ def main():
         if r['level'] == 3 and r['lat'] < 4000:
             passed[k] = (r, prev)
 
-    # 保留：本轮通过，或历史未达 2 次失败
-    keep = []
+    # 保留：本轮通过，或历史失败次数未达阈值
+    keep, dropped = [], []
     for s in cms:
         k = norm(s['api'])
         st = new_stats['sites'].get(k, {})
+        limit = DROP_AFTER * 3 if k in PROTECTED else DROP_AFTER
         if k in passed:
             s['_lat'] = passed[k][0]['lat']
             keep.append(s)
-        elif st.get('fail', 0) < 2:
+        elif st.get('fail', 0) < limit:
             s['_lat'] = 9999
             keep.append(s)
         elif st.get('level', 0) >= 1:
@@ -193,7 +214,20 @@ def main():
             s['_lat'] = 9998
             keep.append(s)
         else:
-            print('drop %s (%s) fail=%d' % (s.get('name'), s['api'][:50], st.get('fail', 0)))
+            dropped.append((s, st.get('fail', 0)))
+
+    if len(keep) < MIN_CMS and dropped:
+        dropped.sort(key=lambda x: x[1])
+        for s, f in dropped[:MIN_CMS - len(keep)]:
+            print('restore %s (fail=%d, 兜底存活数)' % (s.get('name'), f))
+            s['_lat'] = 9997
+            keep.append(s)
+        keep_names = {s.get('name') for s in keep}
+        leftover = [x for x in dropped if x[0].get('name') not in keep_names]
+    else:
+        leftover = dropped
+    for s, f in leftover:
+        print('drop %s (%s) fail=%d' % (s.get('name'), s['api'][:50], f))
 
     have = {norm(s['api']) for s in keep}
     # 注意：GitHub 运行器在境外，与中国宽带的可达性并不一致，
