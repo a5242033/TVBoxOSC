@@ -52,6 +52,9 @@ jobs:
                       defHistory.add("https://gh-proxy.com/https://raw.githubusercontent.com/a5242033/TVBoxOSC/master/config/jsm.json");
                       defHistory.add("https://qist.wyfc.qzz.io/jsm.json");
                       Hawk.put(HawkConfig.API_HISTORY, defHistory);
+                  }
+                  if (!Hawk.contains(HawkConfig.HOME_REC_STYLE)) {
+                      Hawk.put(HawkConfig.HOME_REC_STYLE, true);
                   }'''
           assert anchor in s, 'anchor not found'
           s = s.replace(anchor, block, 1)
