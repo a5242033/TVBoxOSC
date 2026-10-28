@@ -1,4 +1,4 @@
-name: Build
+﻿name: Build
 
 on:
   workflow_dispatch:
@@ -553,6 +553,86 @@ jobs:
           patch(lp, 'mHandler.postDelayed(mConnectTimeoutChangeSourceRun, (Hawk.get(HawkConfig.LIVE_CONNECT_TIMEOUT, 1) + 1) * 5000L);', 'mHandler.postDelayed(mConnectTimeoutChangeSourceRun, 6000L);')
           patch(lp, 'mHandler.postDelayed(mConnectTimeoutChangeSourceRun, 3500);', 'mHandler.postDelayed(mConnectTimeoutChangeSourceRun, 1200);')
           print('patched: live zap fast-fail (play wait 10s -> 6s, error retry 3.5s -> 1.2s)')
+          lp_run_old = """    private Runnable mConnectTimeoutChangeSourceRun = new Runnable() {
+                  @Override
+                  public void run() {
+                      if (switchLivePlayerAndReplay()) {
+                          return;
+                      }
+                      currentLiveChangeSourceTimes++;
+                      if (currentLiveChannelItem.getSourceNum() == currentLiveChangeSourceTimes) {
+                          currentLiveChangeSourceTimes = 0;
+                          Integer[] groupChannelIndex = getNextChannel(Hawk.get(HawkConfig.LIVE_CHANNEL_REVERSE, false) ? -1 : 1);
+                          playChannel(groupChannelIndex[0], groupChannelIndex[1], false);
+                      } else {
+                          playNextSource();
+                      }
+                  }
+              };"""
+          lp_run_new = """    private Runnable mConnectTimeoutChangeSourceRun = new Runnable() {
+                  @Override
+                  public void run() {
+                      if (currentLiveChannelItem == null) return;
+                      currentLiveChangeSourceTimes++;
+                      int __maxTry = Math.min(currentLiveChannelItem.getSourceNum(), 3);
+                      if (currentLiveChangeSourceTimes < __maxTry) {
+                          LOG.i("echo-liveAutoRetry line " + currentLiveChangeSourceTimes + "/" + currentLiveChannelItem.getSourceNum() + " failed -> next line");
+                          playNextSource();
+                          return;
+                      }
+                      if (currentLiveChannelItem.getSourceNum() > 1 && switchLivePlayerAndReplay()) {
+                          LOG.i("echo-liveAutoRetry all lines failed -> switch player retry");
+                          return;
+                      }
+                      currentLiveChangeSourceTimes = 0;
+                      LOG.i("echo-liveAutoRetry channel exhausted -> next channel");
+                      Integer[] groupChannelIndex = getNextChannel(Hawk.get(HawkConfig.LIVE_CHANNEL_REVERSE, false) ? -1 : 1);
+                      playChannel(groupChannelIndex[0], groupChannelIndex[1], false);
+                  }
+              };"""
+          patch(lp, lp_run_old, lp_run_new)
+          lp_helper_anchor = '    private boolean switchLivePlayerAndReplay() {'
+          lp_helpers = """    private static final String LIVE_LAST_OK_KEY = "live_last_ok_source";
+
+              private void rememberLastGoodSource() {
+                  try {
+                      if (currentLiveChannelItem == null) return;
+                      int idx = currentLiveChannelItem.getSourceIndex();
+                      if (idx < 0 || idx >= currentLiveChannelItem.getSourceNum()) return;
+                      java.util.HashMap<String, String> m = Hawk.get(LIVE_LAST_OK_KEY, new java.util.HashMap<String, String>());
+                      if (m == null) m = new java.util.HashMap<String, String>();
+                      String name = currentLiveChannelItem.getChannelName();
+                      String old = m.get(name);
+                      if (old != null && old.equals(String.valueOf(idx))) return;
+                      m.put(name, String.valueOf(idx));
+                      if (m.size() > 500) m.clear();
+                      Hawk.put(LIVE_LAST_OK_KEY, m);
+                      LOG.i("echo-liveAutoRetry remember good line " + name + " -> " + idx);
+                  } catch (Throwable ignored) {
+                  }
+              }
+
+              private void restoreLastGoodSource(LiveChannelItem item) {
+                  try {
+                      if (item == null || item.getSourceNum() <= 1) return;
+                      java.util.HashMap<String, String> m = Hawk.get(LIVE_LAST_OK_KEY, new java.util.HashMap<String, String>());
+                      if (m == null) return;
+                      String v = m.get(item.getChannelName());
+                      if (v == null) return;
+                      int idx = Integer.parseInt(v);
+                      if (idx <= 0 || idx >= item.getSourceNum()) return;
+                      item.setSourceIndex(idx);
+                      LOG.i("echo-liveAutoRetry restore last good line " + item.getChannelName() + " -> " + idx);
+                  } catch (Throwable ignored) {
+                  }
+              }
+
+          """ + lp_helper_anchor
+          patch(lp, lp_helper_anchor, lp_helpers)
+          patch(lp, '            currentLiveChannelItem = getLiveChannels(currentChannelGroupIndex).get(currentLiveChannelIndex);\n            Hawk.put(HawkConfig.LIVE_CHANNEL, currentLiveChannelItem.getChannelName());', '            currentLiveChannelItem = getLiveChannels(currentChannelGroupIndex).get(currentLiveChannelIndex);\n            Hawk.put(HawkConfig.LIVE_CHANNEL, currentLiveChannelItem.getChannelName());\n            restoreLastGoodSource(currentLiveChannelItem);')
+          patch(lp, '                        currentLiveChangeSourceTimes = 0;\n                        allowLiveSwitchPlayer = true;', '                        rememberLastGoodSource();\n                        currentLiveChangeSourceTimes = 0;\n                        allowLiveSwitchPlayer = true;')
+          print('patched: live zap tries next line first, player switch only after lines exhausted, max 3 lines')
+          print('patched: per-channel last working line memory (restore on zap)')
           ogh = 'app/src/main/java/com/github/tvbox/osc/util/OkGoHelper.java'
           okd = 'app/src/main/java/com/github/catvod/net/OkDns.java'
           okh = 'app/src/main/java/com/github/catvod/net/OkHttp.java'
