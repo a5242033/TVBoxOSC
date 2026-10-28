@@ -50,8 +50,10 @@ jobs:
           block = '''Hawk.init(this).build();
                   String defApi = Hawk.get(HawkConfig.API_URL, "");
                   if (defApi == null || defApi.isEmpty()) {
-                      Hawk.put(HawkConfig.API_URL, "https://qist.wyfc.qzz.io/jsm.json");
+                      Hawk.put(HawkConfig.API_URL, "https://gh-proxy.com/https://raw.githubusercontent.com/a5242033/TVBoxOSC/master/config/jsm.json");
                       java.util.ArrayList<String> defHistory = new java.util.ArrayList<>();
+                      defHistory.add("https://gh-proxy.com/https://raw.githubusercontent.com/a5242033/TVBoxOSC/master/config/jsm.json");
+                      defHistory.add("https://cdn.jsdelivr.net/gh/a5242033/TVBoxOSC@master/config/jsm.json");
                       defHistory.add("https://qist.wyfc.qzz.io/jsm.json");
                       Hawk.put(HawkConfig.API_HISTORY, defHistory);
                       Hawk.put(HawkConfig.HOME_REC, Integer.valueOf(0));
