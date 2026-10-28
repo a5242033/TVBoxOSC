@@ -53,7 +53,7 @@ jobs:
                       Hawk.put(HawkConfig.API_URL, "https://gh-proxy.com/https://raw.githubusercontent.com/a5242033/TVBoxOSC/master/config/jsm.json");
                       java.util.ArrayList<String> defHistory = new java.util.ArrayList<>();
                       defHistory.add("https://gh-proxy.com/https://raw.githubusercontent.com/a5242033/TVBoxOSC/master/config/jsm.json");
-                      defHistory.add("https://cdn.jsdelivr.net/gh/a5242033/TVBoxOSC@master/config/jsm.json");
+                      defHistory.add("https://gh.llkk.cc/https://raw.githubusercontent.com/a5242033/TVBoxOSC/master/config/jsm.json");
                       defHistory.add("https://qist.wyfc.qzz.io/jsm.json");
                       Hawk.put(HawkConfig.API_HISTORY, defHistory);
                       Hawk.put(HawkConfig.HOME_REC, Integer.valueOf(0));
@@ -433,14 +433,24 @@ jobs:
               private static byte[] echoBuildLive(final String ext) {
                   try {
                       java.util.ArrayList<String[]> tryUrls = new java.util.ArrayList<String[]>();
+                      String extUrl = "";
                       if (ext != null && !ext.isEmpty()) {
-                          String liveUrl = new String(Base64.decode(ext, Base64.DEFAULT | Base64.URL_SAFE | Base64.NO_WRAP), "UTF-8");
-                          if (liveUrl.startsWith("http")) tryUrls.add(new String[]{"a", liveUrl});
+                          extUrl = new String(Base64.decode(ext, Base64.DEFAULT | Base64.URL_SAFE | Base64.NO_WRAP), "UTF-8");
+                          if (!extUrl.startsWith("http")) extUrl = "";
                       }
-                      tryUrls.add(new String[]{"a", "https://gh-proxy.com/https://raw.githubusercontent.com/Guovin/iptv-api/gd/output/result.m3u"});
-                      tryUrls.add(new String[]{"a", "https://cdn.jsdelivr.net/gh/Guovin/iptv-api@gd/output/result.m3u"});
-                      tryUrls.add(new String[]{"a", "https://raw.githubusercontent.com/Guovin/iptv-api/gd/output/result.m3u"});
-                      if (echoHasV6()) tryUrls.add(new String[]{"b", "https://gh-proxy.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/m3u/ipv6.m3u"});
+                      boolean extOk = !extUrl.isEmpty();
+                      if (extOk) tryUrls.add(new String[]{"a", extUrl});
+                      boolean extIsGuovin = extUrl.toLowerCase().contains("guovin");
+                      String backupTag = extOk ? "b" : "a";
+                      if (!extIsGuovin) {
+                          tryUrls.add(new String[]{backupTag, "https://gh-proxy.com/https://raw.githubusercontent.com/Guovin/iptv-api/gd/output/result.m3u"});
+                          tryUrls.add(new String[]{backupTag, "https://gh.llkk.cc/https://raw.githubusercontent.com/Guovin/iptv-api/gd/output/result.m3u"});
+                          tryUrls.add(new String[]{backupTag, "https://raw.githubusercontent.com/Guovin/iptv-api/gd/output/result.m3u"});
+                      }
+                      if (echoHasV6()) {
+                          if (extIsGuovin) tryUrls.add(new String[]{"b", "https://gh-proxy.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/m3u/ipv6.m3u"});
+                          else tryUrls.add(0, new String[]{"b", "https://gh-proxy.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/m3u/ipv6.m3u"});
+                      }
                       byte[] listA = null;
                       byte[] listB = null;
                       for (String[] sd : tryUrls) {
@@ -467,6 +477,7 @@ jobs:
                               LOG.e("echo-live-proxy try fail " + sd[1] + ": " + th2.getMessage());
                           }
                       }
+                      if (listA == null) listA = listB;
                       String merged = mergeLiveM3u(listA, listB);
                       if (merged != null && merged.length() > 100) {
                           LOG.i("echo-live-proxy merged len:" + merged.length());
