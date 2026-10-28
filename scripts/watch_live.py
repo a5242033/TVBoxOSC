@@ -30,6 +30,8 @@ UA = ('Mozilla/5.0 (Linux; Android 9; TV) AppleWebKit/537.36 '
 MIRRORS = ['https://gh-proxy.com/', 'https://gh.llkk.cc/', 'https://ghfast.top/', '']
 TIMEOUT_LIST = 8
 TIMEOUT_SEG = 5
+# 首分片测速只在"国内网络"跑时开启：GitHub runner 在境外，按它的下载速度排线路会害了国内用户。
+SEG_PROBE = os.environ.get('WATCH_LIVE_SEG_PROBE') == '1'
 WORKERS = 40
 MAX_PER_CHANNEL = 2
 KEEP_DEAD_DAYS = 14
@@ -119,11 +121,13 @@ def check(url):
             r['ok'] = True
             r['lat'] = round(time.time() - t0, 3)
             try:
-                # 不只是"能连上"：真拉 384KB 分片，慢 CDN 会在这里暴露（实测有首分片 12s 的线路）
-                r['seg'] = len(fetch(t, timeout=TIMEOUT_SEG, limit=393216)) > 0
+                # SEG_PROBE（仅国内网络）：真拉 384KB 分片，慢 CDN 会在这里暴露（实测有首分片 12s 的线路）
+                r['seg'] = len(fetch(t, timeout=TIMEOUT_SEG,
+                                     limit=393216 if SEG_PROBE else 32768)) > 0
             except Exception:
                 pass
-            r['lat'] = round(time.time() - t0, 3)
+            if SEG_PROBE:
+                r['lat'] = round(time.time() - t0, 3)
             return r
         if data[:1] == b'\x47' or b'ftyp' in data[:32]:
             r['ok'] = r['seg'] = True
