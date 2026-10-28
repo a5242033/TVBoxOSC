@@ -117,6 +117,78 @@ jobs:
           open(p, 'w', encoding='utf-8').write(s)
           print('home cache-first patched')
           PYEOF
+          echo 'SourceViewModel: 分类(sort)结果落盘，冷启动直接用上次的分类立即出墙'
+          python3 - <<'PYEOF'
+          import sys
+          p = 'app/src/main/java/com/github/tvbox/osc/viewmodel/SourceViewModel.java'
+          s = open(p, encoding='utf-8').read()
+          if 'SORT_DISK_CACHE' in s:
+              print('sort cache patch already applied')
+              sys.exit(0)
+          anchor = '    // homeContent\n    public void getSort(final String sourceKey) {\n'
+          if anchor not in s:
+              print('SORT-ANCHOR-MISS')
+              sys.exit(1)
+          helpers = (
+              '    // SORT_DISK_CACHE: 分类结果落盘，冷启动先出上一次的分类，避免白等一次网络\n'
+              '    private java.io.File sortCacheFile(String key) {\n'
+              '        return new java.io.File(com.github.tvbox.osc.base.App.getInstance().getFilesDir(), "sortcache_" + key.replaceAll("[^A-Za-z0-9]", "_"));\n'
+              '    }\n'
+              '    private void saveSortJson(String key, String json) {\n'
+              '        try {\n'
+              '            java.io.FileOutputStream fo = new java.io.FileOutputStream(sortCacheFile(key));\n'
+              '            fo.write(json.getBytes("UTF-8"));\n'
+              '            fo.close();\n'
+              '        } catch (Throwable ignored) {\n'
+              '        }\n'
+              '    }\n'
+              '    private String loadSortJson(String key, long ttlMs) {\n'
+              '        try {\n'
+              '            java.io.File f = sortCacheFile(key);\n'
+              '            if (f.exists() && System.currentTimeMillis() - f.lastModified() < ttlMs) {\n'
+              '                byte[] b = new byte[(int) f.length()];\n'
+              '                java.io.FileInputStream fi = new java.io.FileInputStream(f);\n'
+              '                fi.read(b);\n'
+              '                fi.close();\n'
+              '                return new String(b, "UTF-8");\n'
+              '            }\n'
+              '        } catch (Throwable ignored) {\n'
+              '        }\n'
+              '        return null;\n'
+              '    }\n'
+          )
+          s = s.replace(anchor, helpers + anchor, 1)
+          # 内存缓存未命中时，先尝试磁盘缓存（仅 type 0/1）
+          mem = '        if (!shouldBypassSortCache(sourceKey, sourceBean)) {\n            AbsSortXml cached = sortCache.get(sourceKey);\n'
+          if mem not in s:
+              print('SORT-MEM-ANCHOR-MISS')
+              sys.exit(1)
+          disk = mem + (
+              '            if (cached == null && sourceBean.getType() == 1) {\n'
+              '                String _diskJson = loadSortJson(sourceKey, 2L * 60L * 60L * 1000L);\n'
+              '                if (_diskJson != null) {\n'
+              '                    AbsSortXml _diskXml = sortJson(sortResult, _diskJson);\n'
+              '                    if (_diskXml != null && _diskXml.list != null) {\n'
+              '                        attachSortSource(sourceKey, _diskXml);\n'
+              '                        postSortResult(sourceKey, _diskXml);\n'
+              '                        return;\n'
+              '                    }\n'
+              '                }\n'
+              '            }\n'
+          )
+          s = s.replace(mem, disk, 1)
+          # 网络拿到分类后落盘
+          save_anchor = '                                String json = response.body();\n                                sortXml = sortJson(sortResult, json);\n'
+          if save_anchor not in s:
+              print('SORT-SAVE-ANCHOR-MISS')
+              sys.exit(1)
+          s = s.replace(save_anchor,
+                        '                                String json = response.body();\n'
+                        '                                saveSortJson(sourceKey, json);\n'
+                        '                                sortXml = sortJson(sortResult, json);\n', 1)
+          open(p, 'w', encoding='utf-8').write(s)
+          print('sort disk cache patched')
+          PYEOF
 
       - name: Setup Python
         uses: actions/setup-python@v7
