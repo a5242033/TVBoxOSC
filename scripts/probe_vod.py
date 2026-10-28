@@ -31,7 +31,7 @@ MAX_CMS = 40
 AUTO_ADD_CANDIDATES = False
 DROP_AFTER = 3        # 连续失败几次才剔除
 MIN_CMS = 12          # 存活站下限：低于此数就回补，避免首页被削空
-DEFAULT_SITE = '影视 · 建安'  # 首页默认站：分类页最新（电影 2026）+ 封面走爱奇艺/B站 CDN（实测 348ms），最不易出空墙
+DEFAULT_SITE = '影视 · 创享'  # 首页默认站：电影分类到 2027，189/189 播放地址都是直链 m3u8（不用解析）
 
 # 国内实测三级全通、但 GitHub runner（境外）经常连不上的站：
 # 阈值放宽到 DROP_AFTER * 3，防止「境外 runner 判死、国内其实好好的」被误杀。
