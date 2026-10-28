@@ -55,6 +55,10 @@ jobs:
                   }
                   if (!Hawk.contains(HawkConfig.HOME_REC_STYLE)) {
                       Hawk.put(HawkConfig.HOME_REC_STYLE, true);
+                  }
+                  // 直播连接超时：默认 (值+1)*5s = 10s，两条线路都死要等 20s；压到 0 => 5s
+                  if (!Hawk.contains(HawkConfig.LIVE_CONNECT_TIMEOUT)) {
+                      Hawk.put(HawkConfig.LIVE_CONNECT_TIMEOUT, 0);
                   }'''
           assert anchor in s, 'anchor not found'
           s = s.replace(anchor, block, 1)
