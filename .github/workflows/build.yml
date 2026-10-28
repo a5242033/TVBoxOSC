@@ -479,7 +479,7 @@ jobs:
                   }
               }
 
-'''
+          '''
           helper_new = live_helpers + helper_body + '\n\n    public Object[] proxyLocal(Map<String, String> param) {'
           patch(ac, '    public Object[] proxyLocal(Map<String, String> param) {', helper_new)
           print('patched: live m3u merge helpers (dual-source, quality-ordered lines)')
