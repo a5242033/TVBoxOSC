@@ -25,6 +25,7 @@ UA = 'okhttp/3.8.1'
 KEYWORD = '庆余年'
 TIMEOUT = 8
 MAX_CMS = 40
+AUTO_ADD_CANDIDATES = False
 
 
 def fetch(url, maxbytes=262144, timeout=TIMEOUT):
@@ -194,27 +195,31 @@ def main():
             print('drop %s (%s) fail=%d' % (s.get('name'), s['api'][:50], st.get('fail', 0)))
 
     have = {norm(s['api']) for s in keep}
-    for k, (r, prev) in passed.items():
-        if k in have or len(keep) >= MAX_CMS:
-            continue
-        if 'apple_m3u8' in r['api'] or '/api/xml.php' in r['api']:
-            continue  # 非标准 CMS 接口，TVBox type1 无法解析
-        name = r['name'] or k
-        name = re.sub(r'影视\s*[|｜]\s*', '', name)
-        name = re.sub(r'[^\u4e00-\u9fa5A-Za-z0-9]+', ' ', name)
-        name = re.sub(r'采集|资源|直连|高清|切|官源', '', name).strip()
-        base = '影视 · ' + (name or '影视源')
-        names = {s.get('name') for s in keep}
-        n, nm = 1, base
-        while nm in names:
-            n += 1
-            nm = base + str(n)
-        keep.append({'key': 'cms%02d' % (len(keep) + 9), 'name': nm, 'type': 1,
-                     'api': r['api'].split('?')[0],
-                     'searchable': 1 if r['mode'] == 'search' else 0,
-                     'quickSearch': 1 if r['mode'] == 'search' else 0,
-                     'filterable': 1, 'changeable': 1, '_lat': r['lat']})
-        print('add  %s (%s)' % (nm, r['api'][:50]))
+    # 注意：GitHub 运行器在境外，与中国宽带的可达性并不一致，
+    # 因此巡检只做"剔除完全不可达的旧站"，不自动补入候选，
+    # 新源仍由本地（国内网络）实测后手工入库，避免把境外通、境内不通的站加进来。
+    if AUTO_ADD_CANDIDATES:
+        for k, (r, prev) in passed.items():
+            if k in have or len(keep) >= MAX_CMS:
+                continue
+            if 'apple_m3u8' in r['api'] or '/api/xml.php' in r['api']:
+                continue  # 非标准 CMS 接口，TVBox type1 无法解析
+            name = r['name'] or k
+            name = re.sub(r'影视\s*[|｜]\s*', '', name)
+            name = re.sub(r'[^\u4e00-\u9fa5A-Za-z0-9]+', ' ', name)
+            name = re.sub(r'采集|资源|直连|高清|切|官源', '', name).strip()
+            base = '影视 · ' + (name or '影视源')
+            names = {s.get('name') for s in keep}
+            n, nm = 1, base
+            while nm in names:
+                n += 1
+                nm = base + str(n)
+            keep.append({'key': 'cms%02d' % (len(keep) + 9), 'name': nm, 'type': 1,
+                         'api': r['api'].split('?')[0],
+                         'searchable': 1 if r['mode'] == 'search' else 0,
+                         'quickSearch': 1 if r['mode'] == 'search' else 0,
+                         'filterable': 1, 'changeable': 1, '_lat': r['lat']})
+            print('add  %s (%s)' % (nm, r['api'][:50]))
 
     keep.sort(key=lambda s: s.get('_lat', 9999))
     for i, s in enumerate(keep, 1):
