@@ -1,8 +1,18 @@
-{
+﻿{
  "spider": "https://qist.wyfc.qzz.io/jar/spider.jar;md5;c1978e5cec469f66f07efd37d39ec26a",
  "lives": [
   {
-   "name": "央卫直播",
+   "name": "精简直播",
+   "type": 0,
+   "url": "https://gh-proxy.com/https://raw.githubusercontent.com/a5242033/TVBoxOSC/master/config/live.m3u",
+   "playerType": 1,
+   "ua": "okhttp/3.8.1",
+   "timeout": 6,
+   "epg": "https://epg.cdn.loc.cc/?ch={name}&date={date}",
+   "logo": "https://logo.wyfc.qzz.io/{name}.png"
+  },
+  {
+   "name": "央卫直播(自动更新)",
    "type": 0,
    "url": "https://gh-proxy.com/https://raw.githubusercontent.com/Guovin/iptv-api/gd/output/result.m3u",
    "playerType": 1,
