@@ -364,7 +364,8 @@ jobs:
                                           break;
                                       }
                                   }
-                                  if (!dup) list.add(new String[]{String.valueOf(liveUrlScore(line, k == 0)), line});
+                                  int sc = liveUrlScore(line, k == 0);
+                                  if (sc >= 0 && !dup) list.add(new String[]{String.valueOf(sc), line});
                                   if (k == 0 || !meta.containsKey(key)) meta.put(key, new String[]{attr, name});
                                   name = null;
                               }
@@ -376,6 +377,7 @@ jobs:
                       for (String key : order) {
                           String[] m = meta.get(key);
                           java.util.ArrayList<String[]> list = chans.get(key);
+                          if (list == null || list.isEmpty()) continue;
                           java.util.Collections.sort(list, new java.util.Comparator<String[]>() {
                               public int compare(String[] x, String[] y) {
                                   return Integer.parseInt(y[0]) - Integer.parseInt(x[0]);
