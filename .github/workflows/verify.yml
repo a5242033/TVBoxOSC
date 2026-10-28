@@ -1,0 +1,36 @@
+name: Verify APK
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: release tag
+        required: true
+        default: '20261028-0149'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Locate apksigner
+        run: |
+          echo "SDK=$ANDROID_HOME"
+          ls "$ANDROID_HOME/build-tools"
+      - name: Download APK
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p apk
+          gh release download "${{ inputs.tag }}" --repo "${{ github.repository }}" --dir apk --pattern "*.apk" --clobber
+          ls -l apk
+      - name: apksigner verify
+        run: |
+          BT=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
+          echo "using $BT"
+          for f in apk/*.apk; do
+            echo "=== $f ==="
+            "$BT/apksigner" verify --verbose --print-certs "$f" || echo "VERIFY_FAILED: $f"
+          done
