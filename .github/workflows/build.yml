@@ -38,7 +38,8 @@ jobs:
           anchor = 'Hawk.init(this).build();'
           block = '''Hawk.init(this).build();
                   String defApi = Hawk.get(HawkConfig.API_URL, "");
-                  if (defApi == null || defApi.isEmpty()) {
+                  boolean legacy = defApi != null && (defApi.contains("qist.wyfc.qzz.io/jsm.json") || defApi.contains("xhztv.top"));
+                  if (defApi == null || defApi.isEmpty() || legacy) {
                       Hawk.put(HawkConfig.API_URL, "https://gh-proxy.com/https://raw.githubusercontent.com/a5242033/TVBoxOSC/master/config/jsm.json");
                       java.util.ArrayList<String> defHistory = new java.util.ArrayList<>();
                       defHistory.add("https://gh-proxy.com/https://raw.githubusercontent.com/a5242033/TVBoxOSC/master/config/jsm.json");
