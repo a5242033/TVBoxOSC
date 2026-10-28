@@ -309,7 +309,7 @@ jobs:
           }
 
               private static int liveUrlScore(String url, boolean fromPrimary) {
-                  if (url.indexOf("://[") >= 0) return 3;
+                  if (url.indexOf("://[") >= 0) return echoHasV6() ? 3 : -1;
                   String host = "";
                   try {
                       host = new java.net.URL(url).getHost();
@@ -403,64 +403,129 @@ jobs:
                       return null;
                   }
               }'''
-          helper_new = helper_body + '\n\n    public Object[] proxyLocal(Map<String, String> param) {'
+          live_helpers = r'''    private static int __echoV6 = -1;
+              private static volatile long __echoLiveCacheAt = 0L;
+              private static volatile String __echoLiveCacheKey = "";
+              private static volatile byte[] __echoLiveCacheBody = null;
+
+              private static boolean echoHasV6() {
+                  if (__echoV6 >= 0) return __echoV6 == 1;
+                  boolean has = false;
+                  try {
+                      java.util.Enumeration<java.net.NetworkInterface> es = java.net.NetworkInterface.getNetworkInterfaces();
+                      while (es != null && es.hasMoreElements()) {
+                          java.net.NetworkInterface ni = es.nextElement();
+                          if (ni == null || !ni.isUp() || ni.isLoopback()) continue;
+                          java.util.Enumeration<java.net.InetAddress> as = ni.getInetAddresses();
+                          while (as.hasMoreElements()) {
+                              java.net.InetAddress a = as.nextElement();
+                              if (a instanceof java.net.Inet6Address && !a.isLoopbackAddress() && !a.isLinkLocalAddress()) { has = true; break; }
+                          }
+                          if (has) break;
+                      }
+                  } catch (Throwable ignored) {
+                  }
+                  __echoV6 = has ? 1 : 0;
+                  android.util.Log.i("echo-live", "device ipv6 available=" + has);
+                  return has;
+              }
+
+              private static byte[] echoBuildLive(final String ext) {
+                  try {
+                      java.util.ArrayList<String[]> tryUrls = new java.util.ArrayList<String[]>();
+                      if (ext != null && !ext.isEmpty()) {
+                          String liveUrl = new String(Base64.decode(ext, Base64.DEFAULT | Base64.URL_SAFE | Base64.NO_WRAP), "UTF-8");
+                          if (liveUrl.startsWith("http")) tryUrls.add(new String[]{"a", liveUrl});
+                      }
+                      tryUrls.add(new String[]{"a", "https://gh-proxy.com/https://raw.githubusercontent.com/Guovin/iptv-api/gd/output/result.m3u"});
+                      tryUrls.add(new String[]{"a", "https://cdn.jsdelivr.net/gh/Guovin/iptv-api@gd/output/result.m3u"});
+                      tryUrls.add(new String[]{"a", "https://raw.githubusercontent.com/Guovin/iptv-api/gd/output/result.m3u"});
+                      if (echoHasV6()) tryUrls.add(new String[]{"b", "https://gh-proxy.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/m3u/ipv6.m3u"});
+                      byte[] listA = null;
+                      byte[] listB = null;
+                      for (String[] sd : tryUrls) {
+                          boolean isA = "a".equals(sd[0]);
+                          if ((isA && listA != null) || (!isA && listB != null)) continue;
+                          try {
+                              LOG.i("echo-live-proxy try " + sd[1]);
+                              java.net.HttpURLConnection conn = (java.net.HttpURLConnection) new java.net.URL(sd[1]).openConnection();
+                              conn.setConnectTimeout(4000);
+                              conn.setReadTimeout(6000);
+                              conn.setRequestProperty("User-Agent", "okhttp/3.8.1");
+                              java.io.InputStream in = conn.getInputStream();
+                              java.io.ByteArrayOutputStream bos = new java.io.ByteArrayOutputStream();
+                              byte[] buf = new byte[8192];
+                              int n;
+                              while ((n = in.read(buf)) > 0) bos.write(buf, 0, n);
+                              in.close();
+                              byte[] body = bos.toByteArray();
+                              if (body.length > 100) {
+                                  if (isA) listA = body; else listB = body;
+                                  LOG.i("echo-live-proxy ok list" + sd[0] + " url:" + sd[1] + " len:" + body.length);
+                              }
+                          } catch (Throwable th2) {
+                              LOG.e("echo-live-proxy try fail " + sd[1] + ": " + th2.getMessage());
+                          }
+                      }
+                      String merged = mergeLiveM3u(listA, listB);
+                      if (merged != null && merged.length() > 100) {
+                          LOG.i("echo-live-proxy merged len:" + merged.length());
+                          return merged.getBytes("UTF-8");
+                      }
+                      return listA != null ? listA : listB;
+                  } catch (Throwable th) {
+                      LOG.e("echo-live-proxy error: " + th.getMessage());
+                      return null;
+                  }
+              }
+
+'''
+          helper_new = live_helpers + helper_body + '\n\n    public Object[] proxyLocal(Map<String, String> param) {'
           patch(ac, '    public Object[] proxyLocal(Map<String, String> param) {', helper_new)
           print('patched: live m3u merge helpers (dual-source, quality-ordered lines)')
           pl_old = '        String siteKey = param.get("siteKey");\n        String action = param.get("do");'
           pl_new = r'''        String siteKey = param.get("siteKey");
           String action = param.get("do");
           if ("live".equals(action) && "txt".equals(param.get("type"))) {
-              try {
-                  java.util.ArrayList<String[]> tryUrls = new java.util.ArrayList<String[]>();
-                  String ext = param.get("ext");
-                  if (ext != null && !ext.isEmpty()) {
-                      String liveUrl = new String(Base64.decode(ext, Base64.DEFAULT | Base64.URL_SAFE | Base64.NO_WRAP), "UTF-8");
-                      if (liveUrl.startsWith("http")) tryUrls.add(new String[]{"a", liveUrl});
-                  }
-                  tryUrls.add(new String[]{"a", "https://gh-proxy.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/m3u/ipv6.m3u"});
-                  tryUrls.add(new String[]{"a", "https://iptv-org.github.io/iptv/countries/cn.m3u"});
-                  tryUrls.add(new String[]{"b", "https://gh-proxy.com/https://raw.githubusercontent.com/Guovin/iptv-api/gd/output/result.m3u"});
-                  tryUrls.add(new String[]{"b", "https://raw.githubusercontent.com/Guovin/iptv-api/gd/output/result.m3u"});
-                  byte[] listA = null;
-                  byte[] listB = null;
-                  for (String[] sd : tryUrls) {
-                      boolean isA = "a".equals(sd[0]);
-                      if ((isA && listA != null) || (!isA && listB != null)) continue;
-                      try {
-                          LOG.i("echo-live-proxy try " + sd[1]);
-                          java.net.HttpURLConnection conn = (java.net.HttpURLConnection) new java.net.URL(sd[1]).openConnection();
-                          conn.setConnectTimeout(2500);
-                          conn.setReadTimeout(9000);
-                          conn.setRequestProperty("User-Agent", "okhttp/3.8.1");
-                          java.io.InputStream in = conn.getInputStream();
-                          java.io.ByteArrayOutputStream bos = new java.io.ByteArrayOutputStream();
-                          byte[] buf = new byte[8192];
-                          int n;
-                          while ((n = in.read(buf)) > 0) bos.write(buf, 0, n);
-                          in.close();
-                          byte[] body = bos.toByteArray();
-                          if (body.length > 100) {
-                              if (isA) listA = body; else listB = body;
-                              LOG.i("echo-live-proxy ok list" + sd[0] + " url:" + sd[1] + " len:" + body.length);
+              String ext = param.get("ext");
+              String cacheKey = ext == null ? "" : ext;
+              byte[] cached = __echoLiveCacheBody;
+              if (cached != null && cached.length > 100 && cacheKey.equals(__echoLiveCacheKey)) {
+                  long age = System.currentTimeMillis() - __echoLiveCacheAt;
+                  LOG.i("echo-live-proxy cache hit age=" + (age / 1000) + "s len=" + cached.length);
+                  if (age > 600000L && !__echoLiveRefreshing) {
+                      __echoLiveRefreshing = true;
+                      final String fe = ext;
+                      new Thread(new Runnable() {
+                          public void run() {
+                              try {
+                                  byte[] nb = echoBuildLive(fe);
+                                  if (nb != null && nb.length > 100) {
+                                      __echoLiveCacheBody = nb;
+                                      __echoLiveCacheAt = System.currentTimeMillis();
+                                      LOG.i("echo-live-proxy cache refreshed len=" + nb.length);
+                                  }
+                              } finally {
+                                  __echoLiveRefreshing = false;
+                              }
                           }
-                      } catch (Throwable th2) {
-                          LOG.e("echo-live-proxy try fail " + sd[1] + ": " + th2.getMessage());
-                      }
+                      }).start();
                   }
-                  String merged = mergeLiveM3u(listA, listB);
-                  if (merged != null && merged.length() > 100) {
-                      LOG.i("echo-live-proxy merged len:" + merged.length());
-                      return new Object[]{200, "text/plain", new java.io.ByteArrayInputStream(merged.getBytes("UTF-8"))};
-                  }
-                  byte[] fallback = listA != null ? listA : listB;
-                  if (fallback != null) return new Object[]{200, "text/plain", new java.io.ByteArrayInputStream(fallback)};
-              } catch (Throwable th) {
-                  LOG.e("echo-live-proxy error: " + th.getMessage());
+                  return new Object[]{200, "text/plain", new java.io.ByteArrayInputStream(cached)};
+              }
+              byte[] body = echoBuildLive(ext);
+              if (body != null && body.length > 100) {
+                  __echoLiveCacheKey = cacheKey;
+                  __echoLiveCacheBody = body;
+                  __echoLiveCacheAt = System.currentTimeMillis();
+                  return new Object[]{200, "text/plain", new java.io.ByteArrayInputStream(body)};
               }
           }'''
           patch(ac, pl_old, pl_new)
+          patch(ac, '    private static int __echoV6 = -1;', '    private static volatile boolean __echoLiveRefreshing = false;\n\n    private static int __echoV6 = -1;')
           print('patched: live txt proxy dual-source merge (IPv4-first line ordering)')
-          print('patched: live source fast-fail (connect 2.5s / read 9s, dead source no longer stalls 6s)')
+          print('patched: live list 10min memory cache (cache hit instant, stale refresh in background)')
+          print('patched: live source fast-fail (connect 4s / read 6s, dead source no longer stalls)')
           ig = 'app/src/main/res/layout/item_grid.xml'
           s = open(ig, encoding='utf-8').read()
           s2 = s.replace('android:ellipsize="marquee"', 'android:ellipsize="end"', 1)
@@ -475,6 +540,9 @@ jobs:
           lp2_new = '            OkGo.<String>get(__proxyUrl.startsWith("http://127.0.0.1") ? __proxyUrl : "http://127.0.0.1:9978/proxy?do=live&type=txt&ext=" + Base64.encodeToString(url.getBytes(), Base64.DEFAULT | Base64.URL_SAFE | Base64.NO_WRAP)).execute(new AbsCallback<String>() {'
           patch(lp, lp2_old, lp2_new)
           print('patched: live txt fetch via local proxy (multi-URL fallback)')
+          patch(lp, 'mHandler.postDelayed(mConnectTimeoutChangeSourceRun, (Hawk.get(HawkConfig.LIVE_CONNECT_TIMEOUT, 1) + 1) * 5000L);', 'mHandler.postDelayed(mConnectTimeoutChangeSourceRun, 6000L);')
+          patch(lp, 'mHandler.postDelayed(mConnectTimeoutChangeSourceRun, 3500);', 'mHandler.postDelayed(mConnectTimeoutChangeSourceRun, 1200);')
+          print('patched: live zap fast-fail (play wait 10s -> 6s, error retry 3.5s -> 1.2s)')
           ogh = 'app/src/main/java/com/github/tvbox/osc/util/OkGoHelper.java'
           okd = 'app/src/main/java/com/github/catvod/net/OkDns.java'
           okh = 'app/src/main/java/com/github/catvod/net/OkHttp.java'
