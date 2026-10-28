@@ -261,6 +261,10 @@ jobs:
           patch(exo, exo_old, exo_new)
           da = 'app/src/main/java/com/github/tvbox/osc/ui/activity/DetailActivity.java'
           patch(da, 'boolean showPreview = Hawk.get(HawkConfig.SHOW_PREVIEW, true);', 'boolean showPreview = Hawk.get(HawkConfig.SHOW_PREVIEW, false);')
+          exo_ext_old = '.setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER)'
+          exo_ext_new = '.setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON)'
+          patch(exo, exo_ext_old, exo_ext_new)
+          print('patched: exo hardware-decode first (decoder fallback still keeps compatibility)')
           print('patched: exo fast-start buffer (start 800ms, resume 1500ms, min 15s) + preview player off by default')
           print('patched: default multi-source + auto failover + dead-link cooldown + jar-cache self-heal')
           PYEOF
