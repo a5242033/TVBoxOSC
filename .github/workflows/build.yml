@@ -58,25 +58,30 @@ jobs:
           open(p, 'w', encoding='utf-8').write(s)
           print('default config patched')
           PYEOF
-          echo 'JarLoader：普通 jar 优先走 Init.init()，别被 ProtectedInitJar 误判卡死'
+          echo 'JarLoader: normal jar tries Init.init() first'
           python3 - <<'PYEOF'
+          import re, sys
           p = 'app/src/main/java/com/github/catvod/crawler/JarLoader.java'
           s = open(p, encoding='utf-8').read()
-          old = """            protectedJar = protectedInitJar.check(jar);
-            if (protectedJar) {"""
-          new = """            try {
-                Method m0 = clz.getMethod("init", Context.class);
-                m0.invoke(null, App.getInstance());
-                Log.i(TAG, "echo---normal-init-ok");
-                return true;
-            } catch (Throwable ignored) {
-            }
-            protectedJar = protectedInitJar.check(jar);
-            if (protectedJar) {"""
-          assert old in s, 'JarLoader anchor not found'
-          s = s.replace(old, new, 1)
+          if 'echo---normal-init-ok' in s:
+              print('jarloader already patched')
+              sys.exit(0)
+          m = re.search(r'\n([ \t]*)protectedJar\s*=\s*protectedInitJar\.check\(jar\);', s)
+          if not m:
+              print('JARLOADER-ANCHOR-MISS head=%r' % s[:400])
+              sys.exit(1)
+          ind = m.group(1)
+          ins = ('\n' + ind + 'try {'
+                 + '\n' + ind + '    Method m0 = clz.getMethod("init", Context.class);'
+                 + '\n' + ind + '    m0.invoke(null, App.getInstance());'
+                 + '\n' + ind + '    Log.i(TAG, "echo---normal-init-ok");'
+                 + '\n' + ind + '    return true;'
+                 + '\n' + ind + '} catch (Throwable ignored) {'
+                 + '\n' + ind + '}')
+          s = s[:m.start()] + ins + s[m.start():]
+          assert 'echo---normal-init-ok' in s
           open(p, 'w', encoding='utf-8').write(s)
-          print('jarloader patched')
+          print('jarloader patched, indent=%r' % ind)
           PYEOF
 
       - name: Setup Python
