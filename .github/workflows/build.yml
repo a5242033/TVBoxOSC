@@ -439,18 +439,16 @@ jobs:
                           if (!extUrl.startsWith("http")) extUrl = "";
                       }
                       boolean extOk = !extUrl.isEmpty();
-                      if (extOk) tryUrls.add(new String[]{"a", extUrl});
                       boolean extIsGuovin = extUrl.toLowerCase().contains("guovin");
-                      String backupTag = extOk ? "b" : "a";
-                      if (!extIsGuovin) {
-                          tryUrls.add(new String[]{backupTag, "https://gh-proxy.com/https://raw.githubusercontent.com/Guovin/iptv-api/gd/output/result.m3u"});
-                          tryUrls.add(new String[]{backupTag, "https://gh.llkk.cc/https://raw.githubusercontent.com/Guovin/iptv-api/gd/output/result.m3u"});
-                          tryUrls.add(new String[]{backupTag, "https://raw.githubusercontent.com/Guovin/iptv-api/gd/output/result.m3u"});
+                      if (extIsGuovin) {
+                          tryUrls.add(new String[]{"a", extUrl});
+                      } else {
+                          tryUrls.add(new String[]{"a", "https://gh-proxy.com/https://raw.githubusercontent.com/Guovin/iptv-api/gd/output/result.m3u"});
+                          tryUrls.add(new String[]{"a", "https://gh.llkk.cc/https://raw.githubusercontent.com/Guovin/iptv-api/gd/output/result.m3u"});
+                          tryUrls.add(new String[]{"a", "https://raw.githubusercontent.com/Guovin/iptv-api/gd/output/result.m3u"});
                       }
-                      if (echoHasV6()) {
-                          if (extIsGuovin) tryUrls.add(new String[]{"b", "https://gh-proxy.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/m3u/ipv6.m3u"});
-                          else tryUrls.add(0, new String[]{"b", "https://gh-proxy.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/m3u/ipv6.m3u"});
-                      }
+                      if (echoHasV6()) tryUrls.add(new String[]{"b", "https://gh-proxy.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/m3u/ipv6.m3u"});
+                      if (!extIsGuovin && extOk) tryUrls.add(new String[]{"b", extUrl});
                       byte[] listA = null;
                       byte[] listB = null;
                       for (String[] sd : tryUrls) {
