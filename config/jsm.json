@@ -71,16 +71,6 @@
   },
   {
    "key": "cms05",
-   "name": "影视 · 豆瓣",
-   "type": 1,
-   "api": "https://caiji.dbzy5.com/api.php/provide/vod/",
-   "searchable": 1,
-   "quickSearch": 1,
-   "filterable": 1,
-   "changeable": 1
-  },
-  {
-   "key": "cms06",
    "name": "影视 · 暴風",
    "type": 1,
    "api": "https://bfzyapi.com/api.php/provide/vod/",
@@ -90,7 +80,7 @@
    "changeable": 1
   },
   {
-   "key": "cms07",
+   "key": "cms06",
    "name": "影视 · 优质",
    "type": 1,
    "api": "https://api.yyzy-tv.vip/inc/apijson.php",
