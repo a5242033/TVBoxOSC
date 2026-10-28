@@ -278,6 +278,9 @@ jobs:
           exo_ext_old = '.setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER)'
           exo_ext_new = '.setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON)'
           patch(exo, exo_ext_old, exo_ext_new)
+          ph = 'app/src/main/java/com/github/tvbox/osc/util/PlayerHelper.java'
+          patch(ph, 'int renderType = Hawk.get(HawkConfig.PLAY_RENDER, 0);', 'int renderType = Hawk.get(HawkConfig.PLAY_RENDER, 1);', 2)
+          print('patched: default render SurfaceView (settings switch kept for fallback)')
           print('patched: exo hardware-decode first (decoder fallback still keeps compatibility)')
           print('patched: exo fast-start buffer (start 800ms, resume 1500ms, min 15s) + preview player off by default')
           print('patched: default multi-source + auto failover + dead-link cooldown + jar-cache self-heal')
