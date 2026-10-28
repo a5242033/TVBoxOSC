@@ -221,7 +221,13 @@ def main():
 
         cand = []
         for k in dead_chans:
-            for u in dict.fromkeys(pool.get(k, [])):
+            urls = pool.get(k, [])
+            if not urls:
+                # 精确名对不上时做一次前缀模糊匹配（CCTV1综合 vs CCTV-1、湖南卫视高清 vs 湖南卫视）
+                for pk, pu in pool.items():
+                    if len(k) >= 4 and (pk.startswith(k) or k.startswith(pk)):
+                        urls = urls + pu
+            for u in dict.fromkeys(urls):
                 if u not in res:
                     cand.append((k, u))
         log('L2     candidates=%d' % len(cand))

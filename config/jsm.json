@@ -21,7 +21,7 @@
    "logo": "https://logo.wyfc.qzz.io/{name}.png"
   }
  ],
- "wallpaper": "https://wallpaper-1tg.pages.dev/",
+ "wallpaper": "",
  "danmaku": "http://127.0.0.1:9978/proxy?do=danmaku&name={name}&episode={episode}",
  "sites": [
   {
