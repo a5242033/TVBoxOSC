@@ -310,15 +310,6 @@ jobs:
 
               private static int liveUrlScore(String url, boolean fromPrimary) {
                   if (url.indexOf("://[") >= 0) return -1;
-                  if (!fromPrimary) return 0;
-                  String host = "";
-                  try {
-                      host = new java.net.URL(url).getHost();
-                  } catch (Throwable ignored) {
-                  }
-                  if (host.contains("63.141.230.178") || host.contains("38.75.136.137") || host.contains("107.150.60.122") || host.contains("198.204.228.26") || host.contains("204.12.221.218") || host.contains("104.152.209.49")) return 4;
-                  boolean bareIp = host.matches("\\d+\\.\\d+\\.\\d+\\.\\d+");
-                  if (bareIp) return 2;
                   return fromPrimary ? 1 : 0;
               }
 
