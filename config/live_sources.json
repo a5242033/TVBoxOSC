@@ -1,0 +1,23 @@
+{
+  "_comment": "替补池配置。只保留实测达标的源：drop 级(guovin gd / zbefine / ssili / yuechan / iptv-org / aptv / burningc4 / supprise)已剔除，避免无效算力。tier C 不参与替补。",
+  "mirrors": [
+    "https://gh-proxy.com/",
+    "https://gh.llkk.cc/",
+    "https://ghfast.top/",
+    ""
+  ],
+  "sources": [
+    {
+      "id": "vbsky",
+      "tier": "A",
+      "url": "https://raw.githubusercontent.com/vbskycn/iptv/master/tv/iptv4.m3u",
+      "_note": "441 频道，抽样 42%，可救回 9 个自建死频道"
+    },
+    {
+      "id": "yang-gather",
+      "tier": "A",
+      "url": "https://raw.githubusercontent.com/YanG-1989/m3u/main/Gather.m3u",
+      "_note": "123 频道抽样 100%/0.41s，但均为咪咕/斗鱼/B站，不含央视卫视，仅作扩展备用"
+    }
+  ]
+}
