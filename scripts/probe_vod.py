@@ -26,6 +26,7 @@ KEYWORD = '庆余年'
 TIMEOUT = 8
 MAX_CMS = 40
 AUTO_ADD_CANDIDATES = False
+DEFAULT_SITE = '影视 · 新浪'  # 首页默认站固定，避免每日重排导致首页站源跳变
 
 
 def fetch(url, maxbytes=262144, timeout=TIMEOUT):
@@ -221,7 +222,7 @@ def main():
                          'filterable': 1, 'changeable': 1, '_lat': r['lat']})
             print('add  %s (%s)' % (nm, r['api'][:50]))
 
-    keep.sort(key=lambda s: s.get('_lat', 9999))
+    keep.sort(key=lambda s: (0 if s.get('name') == DEFAULT_SITE else 1, s.get('_lat', 9999)))
     for i, s in enumerate(keep, 1):
         s.pop('_lat', None)
         s['key'] = 'cms%02d' % i
