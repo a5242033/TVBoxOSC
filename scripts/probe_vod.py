@@ -31,11 +31,13 @@ MAX_CMS = 40
 AUTO_ADD_CANDIDATES = False
 DROP_AFTER = 3        # 连续失败几次才剔除
 MIN_CMS = 12          # 存活站下限：低于此数就回补，避免首页被削空
-DEFAULT_SITE = '影视 · 暴風'  # 首页默认站固定，避免每日重排导致首页站源跳变
+DEFAULT_SITE = '影视 · 建安'  # 首页默认站：分类页最新（电影 2026）+ 封面走爱奇艺/B站 CDN（实测 348ms），最不易出空墙
 
 # 国内实测三级全通、但 GitHub runner（境外）经常连不上的站：
 # 阈值放宽到 DROP_AFTER * 3，防止「境外 runner 判死、国内其实好好的」被误杀。
 PROTECTED = {
+    'ys.cxkjg.cn/api/provide/vod',                 # 创享（首页默认）
+    '154.219.117.232:9981/jacloudapi.php/provide/vod',  # 建安
     'bfzyapi.com/api.php/provide/vod',
     'ffzy5.tv/api.php/provide/vod',
     'tyyszy.com/api.php/provide/vod',

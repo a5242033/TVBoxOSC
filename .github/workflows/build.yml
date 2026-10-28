@@ -44,13 +44,12 @@ jobs:
           anchor = 'Hawk.init(this).build();'
           block = '''Hawk.init(this).build();
                   String defApi = Hawk.get(HawkConfig.API_URL, "");
-                  boolean legacy = defApi != null && (defApi.contains("qist.wyfc.qzz.io/jsm.json") || defApi.contains("xhztv.top") || defApi.contains("cdn.jsdelivr.net"));
+                  boolean legacy = defApi != null && (defApi.contains("qist.wyfc.qzz.io/jsm.json") || defApi.contains("xhztv.top") || defApi.contains("cdn.jsdelivr.net") || defApi.contains("gh.llkk.cc") || defApi.contains("gh-proxy.com/https://raw.githubusercontent.com/a5242033"));
                   if (defApi == null || defApi.isEmpty() || legacy) {
-                      Hawk.put(HawkConfig.API_URL, "https://gh-proxy.com/https://raw.githubusercontent.com/a5242033/TVBoxOSC/master/config/jsm.json");
+                      Hawk.put(HawkConfig.API_URL, "https://ghfast.top/https://raw.githubusercontent.com/a5242033/TVBoxOSC/master/config/jsm.json");
                       java.util.ArrayList<String> defHistory = new java.util.ArrayList<>();
-                      defHistory.add("https://gh-proxy.com/https://raw.githubusercontent.com/a5242033/TVBoxOSC/master/config/jsm.json");
                       defHistory.add("https://ghfast.top/https://raw.githubusercontent.com/a5242033/TVBoxOSC/master/config/jsm.json");
-                      defHistory.add("https://gh.llkk.cc/https://raw.githubusercontent.com/a5242033/TVBoxOSC/master/config/jsm.json");
+                      defHistory.add("https://gh-proxy.com/https://raw.githubusercontent.com/a5242033/TVBoxOSC/master/config/jsm.json");
                       defHistory.add("https://qist.wyfc.qzz.io/jsm.json");
                       Hawk.put(HawkConfig.API_HISTORY, defHistory);
                   }'''
@@ -58,6 +57,26 @@ jobs:
           s = s.replace(anchor, block, 1)
           open(p, 'w', encoding='utf-8').write(s)
           print('default config patched')
+          PYEOF
+          echo 'JarLoader：普通 jar 优先走 Init.init()，别被 ProtectedInitJar 误判卡死'
+          python3 - <<'PYEOF'
+          p = 'app/src/main/java/com/github/catvod/crawler/JarLoader.java'
+          s = open(p, encoding='utf-8').read()
+          old = """            protectedJar = protectedInitJar.check(jar);
+            if (protectedJar) {"""
+          new = """            try {
+                Method m0 = clz.getMethod("init", Context.class);
+                m0.invoke(null, App.getInstance());
+                Log.i(TAG, "echo---normal-init-ok");
+                return true;
+            } catch (Throwable ignored) {
+            }
+            protectedJar = protectedInitJar.check(jar);
+            if (protectedJar) {"""
+          assert old in s, 'JarLoader anchor not found'
+          s = s.replace(old, new, 1)
+          open(p, 'w', encoding='utf-8').write(s)
+          print('jarloader patched')
           PYEOF
 
       - name: Setup Python
