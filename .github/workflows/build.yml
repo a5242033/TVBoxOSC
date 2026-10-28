@@ -255,6 +255,13 @@ jobs:
           patch(ac, fc_p_old, fc_p_new)
           print('patched: fast config fetch client (ipv4-first, no doh/proxy, 5s connect) + timing logs')
           print('patched: config lives pass-through (merge/fallback handled in live proxy)')
+          exo = 'app/src/main/java/com/github/tvbox/osc/player/ExoPlayer.java'
+          exo_old = '        setLoadControl(new DefaultLoadControl.Builder()\n                .setBufferDurationsMs(\n                        DefaultLoadControl.DEFAULT_MIN_BUFFER_MS,\n                        DefaultLoadControl.DEFAULT_MAX_BUFFER_MS,\n                        DefaultLoadControl.DEFAULT_BUFFER_FOR_PLAYBACK_MS,\n                        DefaultLoadControl.DEFAULT_BUFFER_FOR_PLAYBACK_AFTER_REBUFFER_MS)\n                .build());'
+          exo_new = '        setLoadControl(new DefaultLoadControl.Builder()\n                .setBufferDurationsMs(15000, 50000, 800, 1500)\n                .build());'
+          patch(exo, exo_old, exo_new)
+          da = 'app/src/main/java/com/github/tvbox/osc/ui/activity/DetailActivity.java'
+          patch(da, 'boolean showPreview = Hawk.get(HawkConfig.SHOW_PREVIEW, true);', 'boolean showPreview = Hawk.get(HawkConfig.SHOW_PREVIEW, false);')
+          print('patched: exo fast-start buffer (start 800ms, resume 1500ms, min 15s) + preview player off by default')
           print('patched: default multi-source + auto failover + dead-link cooldown + jar-cache self-heal')
           PYEOF
 
