@@ -119,9 +119,11 @@ def check(url):
             r['ok'] = True
             r['lat'] = round(time.time() - t0, 3)
             try:
-                r['seg'] = len(fetch(t, timeout=TIMEOUT_SEG, limit=32768)) > 0
+                # 不只是"能连上"：真拉 384KB 分片，慢 CDN 会在这里暴露（实测有首分片 12s 的线路）
+                r['seg'] = len(fetch(t, timeout=TIMEOUT_SEG, limit=393216)) > 0
             except Exception:
                 pass
+            r['lat'] = round(time.time() - t0, 3)
             return r
         if data[:1] == b'\x47' or b'ftyp' in data[:32]:
             r['ok'] = r['seg'] = True
