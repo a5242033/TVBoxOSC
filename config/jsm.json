@@ -26,16 +26,6 @@
  "sites": [
   {
    "key": "cms01",
-   "name": "影视 · 建安",
-   "type": 1,
-   "api": "http://154.219.117.232:9981/jacloudapi.php/provide/vod",
-   "searchable": 1,
-   "quickSearch": 1,
-   "filterable": 1,
-   "changeable": 1
-  },
-  {
-   "key": "cms02",
    "name": "影视 · 创享",
    "type": 1,
    "api": "https://ys.cxkjg.cn/api/provide/vod/",
@@ -45,47 +35,7 @@
    "changeable": 1
   },
   {
-   "key": "cms03",
-   "name": "影视 · 豆瓣",
-   "type": 1,
-   "api": "https://caiji.dbzy5.com/api.php/provide/vod/",
-   "searchable": 0,
-   "quickSearch": 0,
-   "filterable": 1,
-   "changeable": 1
-  },
-  {
-   "key": "cms04",
-   "name": "影视 · 电影天堂",
-   "type": 1,
-   "api": "http://caiji.dyttzyapi.com/api.php/provide/vod",
-   "searchable": 1,
-   "quickSearch": 1,
-   "filterable": 1,
-   "changeable": 1
-  },
-  {
-   "key": "cms05",
-   "name": "影视 · 非凡影视",
-   "type": 1,
-   "api": "http://ffzy5.tv/api.php/provide/vod/",
-   "searchable": 1,
-   "quickSearch": 1,
-   "filterable": 1,
-   "changeable": 1
-  },
-  {
-   "key": "cms06",
-   "name": "影视 · 天涯",
-   "type": 1,
-   "api": "http://tyyszy.com/api.php/provide/vod",
-   "searchable": 0,
-   "quickSearch": 0,
-   "filterable": 1,
-   "changeable": 1
-  },
-  {
-   "key": "cms07",
+   "key": "cms02",
    "name": "影视 · 暴風",
    "type": 1,
    "api": "https://bfzyapi.com/api.php/provide/vod/",
@@ -95,7 +45,67 @@
    "changeable": 1
   },
   {
+   "key": "cms03",
+   "name": "影视 · 天涯",
+   "type": 1,
+   "api": "http://tyyszy.com/api.php/provide/vod",
+   "searchable": 0,
+   "quickSearch": 0,
+   "filterable": 1,
+   "changeable": 1
+  },
+  {
+   "key": "cms04",
+   "name": "影视 · 虎牙",
+   "type": 1,
+   "api": "https://www.huyaapi.com/api.php/provide/vod/from/hym3u8",
+   "searchable": 1,
+   "quickSearch": 1,
+   "filterable": 1,
+   "changeable": 1
+  },
+  {
+   "key": "cms05",
+   "name": "影视 · 360",
+   "type": 1,
+   "api": "https://360zy.com/api.php/provide/vod/",
+   "searchable": 1,
+   "quickSearch": 1,
+   "filterable": 1,
+   "changeable": 1
+  },
+  {
+   "key": "cms06",
+   "name": "影视 · 豆瓣",
+   "type": 1,
+   "api": "https://caiji.dbzy5.com/api.php/provide/vod/",
+   "searchable": 0,
+   "quickSearch": 0,
+   "filterable": 1,
+   "changeable": 1
+  },
+  {
+   "key": "cms07",
+   "name": "影视 · 非凡影视",
+   "type": 1,
+   "api": "http://ffzy5.tv/api.php/provide/vod/",
+   "searchable": 1,
+   "quickSearch": 1,
+   "filterable": 1,
+   "changeable": 1
+  },
+  {
    "key": "cms08",
+   "name": "影视 · 电影天堂",
+   "type": 1,
+   "api": "http://caiji.dyttzyapi.com/api.php/provide/vod",
+   "searchable": 1,
+   "quickSearch": 1,
+   "filterable": 1,
+   "changeable": 1
+  },
+  {
+   "key": "cms09",
    "name": "影视 · 新浪",
    "type": 1,
    "api": "http://api.xinlangapi.com/xinlangapi.php/provide/vod/",
@@ -105,20 +115,10 @@
    "changeable": 1
   },
   {
-   "key": "cms09",
+   "key": "cms10",
    "name": "影视 · 火狐",
    "type": 1,
    "api": "https://hhzyapi.com/api.php/provide/vod/",
-   "searchable": 1,
-   "quickSearch": 1,
-   "filterable": 1,
-   "changeable": 1
-  },
-  {
-   "key": "cms10",
-   "name": "影视 · 虎牙",
-   "type": 1,
-   "api": "https://www.huyaapi.com/api.php/provide/vod/from/hym3u8",
    "searchable": 1,
    "quickSearch": 1,
    "filterable": 1,
@@ -146,9 +146,9 @@
   },
   {
    "key": "cms13",
-   "name": "影视 · 360",
+   "name": "影视 · 速播",
    "type": 1,
-   "api": "https://360zy.com/api.php/provide/vod/",
+   "api": "https://subocaiji.com/api.php/provide/vod/",
    "searchable": 1,
    "quickSearch": 1,
    "filterable": 1,
@@ -156,9 +156,9 @@
   },
   {
    "key": "cms14",
-   "name": "影视 · 速播",
+   "name": "影视 · 建安",
    "type": 1,
-   "api": "https://subocaiji.com/api.php/provide/vod/",
+   "api": "http://154.219.117.232:9981/jacloudapi.php/provide/vod",
    "searchable": 1,
    "quickSearch": 1,
    "filterable": 1,
