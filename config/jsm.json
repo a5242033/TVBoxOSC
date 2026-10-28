@@ -35,7 +35,7 @@
    "changeable": 1
   },
   {
-   "key": "cms02",
+   "key": "js02",
    "name": "官源 • 优酷",
    "type": 3,
    "api": "https://qist.wyfc.qzz.io/lib/drpy2.min.js",
@@ -176,11 +176,21 @@
    "changeable": 1
   },
   {
-   "key": "cms16",
+   "key": "js16",
    "name": "茶杯狐 • cupfox.in",
    "type": 3,
    "api": "https://qist.wyfc.qzz.io/lib/drpy2.min.js",
    "ext": "https://qist.wyfc.qzz.io/js/茶杯狐.js",
+   "searchable": 1,
+   "quickSearch": 1,
+   "changeable": 1,
+   "playerType": 1
+  },
+  {
+   "key": "js17",
+   "name": "华谊 • 影视",
+   "type": 3,
+   "api": "https://qist.wyfc.qzz.io/py/华谊影视.py",
    "searchable": 1,
    "quickSearch": 1,
    "changeable": 1,
