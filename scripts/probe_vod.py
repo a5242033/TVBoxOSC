@@ -186,6 +186,10 @@ def main():
         elif st.get('fail', 0) < 2:
             s['_lat'] = 9999
             keep.append(s)
+        elif st.get('level', 0) >= 1:
+            # 能搜索/出详情但播放地址拉不动，多为 CDN 地域差异，别误杀
+            s['_lat'] = 9998
+            keep.append(s)
         else:
             print('drop %s (%s) fail=%d' % (s.get('name'), s['api'][:50], st.get('fail', 0)))
 
