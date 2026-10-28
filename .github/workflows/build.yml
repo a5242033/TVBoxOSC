@@ -309,7 +309,7 @@ jobs:
           }
 
               private static int liveUrlScore(String url, boolean fromPrimary) {
-                  if (url.indexOf("://[") >= 0) return echoHasV6() ? 3 : -1;
+                  if (url.indexOf("://[") >= 0) return -1;
                   String host = "";
                   try {
                       host = new java.net.URL(url).getHost();
@@ -378,7 +378,7 @@ jobs:
                           java.util.ArrayList<String[]> list = chans.get(key);
                           java.util.Collections.sort(list, new java.util.Comparator<String[]>() {
                               public int compare(String[] x, String[] y) {
-                                  return Integer.parseInt(x[0]) - Integer.parseInt(y[0]);
+                                  return Integer.parseInt(y[0]) - Integer.parseInt(x[0]);
                               }
                           });
                           boolean first = true;
@@ -447,7 +447,6 @@ jobs:
                           tryUrls.add(new String[]{"a", "https://gh.llkk.cc/https://raw.githubusercontent.com/Guovin/iptv-api/gd/output/result.m3u"});
                           tryUrls.add(new String[]{"a", "https://raw.githubusercontent.com/Guovin/iptv-api/gd/output/result.m3u"});
                       }
-                      if (echoHasV6()) tryUrls.add(new String[]{"b", "https://gh-proxy.com/https://raw.githubusercontent.com/fanmingming/live/main/tv/m3u/ipv6.m3u"});
                       if (!extIsGuovin && extOk) tryUrls.add(new String[]{"b", extUrl});
                       byte[] listA = null;
                       byte[] listB = null;
