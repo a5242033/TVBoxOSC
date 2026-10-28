@@ -189,6 +189,32 @@ jobs:
           open(p, 'w', encoding='utf-8').write(s)
           print('sort disk cache patched')
           PYEOF
+          echo 'HomeActivity: 本地代理服务延后启动，别占开屏时间'
+          python3 - <<'PYEOF'
+          import sys
+          p = 'app/src/main/java/com/github/tvbox/osc/ui/activity/HomeActivity.java'
+          s = open(p, encoding='utf-8').read()
+          if 'DEFER_START_SERVER' in s:
+              print('defer startServer already applied')
+              sys.exit(0)
+          old = '        ControlManager.get().startServer();\n'
+          if old not in s:
+              print('START-SERVER-ANCHOR-MISS')
+              sys.exit(1)
+          new = (
+              '        // DEFER_START_SERVER: 本地代理服务不占开屏，延后 800ms 起\n'
+              '        new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(new Runnable() {\n'
+              '            public void run() {\n'
+              '                try {\n'
+              '                    ControlManager.get().startServer();\n'
+              '                } catch (Throwable ignored) {\n'
+              '                }\n'
+              '            }\n'
+              '        }, 800);\n')
+          s = s.replace(old, new, 1)
+          open(p, 'w', encoding='utf-8').write(s)
+          print('startServer deferred')
+          PYEOF
 
       - name: Setup Python
         uses: actions/setup-python@v7
