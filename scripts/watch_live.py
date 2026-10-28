@@ -5,7 +5,7 @@
   L1 只实测当前清单里的线路（约 650 条，2 分钟）
   L2 仅对出现死线的频道，去替补池里找同频道候选，实测通过才补
   L3 外部线路必须「列表可达 + 首分片可播 + 延迟不劣于原线路 1.5 倍」才准入
-  全死的频道不删，保留旧线路并标记，避免频道表缩水
+  全死的频道：近 14 天有存活记录的保留 1 条待复测，否则直接剔除（避免清单虚胖）
 
 输出：config/live.m3u + config/live_stats.json
 """
@@ -31,7 +31,8 @@ MIRRORS = ['https://gh-proxy.com/', 'https://gh.llkk.cc/', 'https://ghfast.top/'
 TIMEOUT_LIST = 8
 TIMEOUT_SEG = 5
 WORKERS = 40
-MAX_PER_CHANNEL = 3
+MAX_PER_CHANNEL = 2
+KEEP_DEAD_DAYS = 14
 EXTINF = re.compile(r'^#EXTINF:(-?[0-9.]+)\s*(.*)$')
 JUNK = re.compile(r'^\d{4}-\d{2}-\d{2}|^\d{2}:\d{2}:\d{2}|测试|备用|废弃|失效')
 
@@ -251,9 +252,16 @@ def main():
             ranked.append((0 if r['seg'] else 1, -rate, r['lat'], u))
         ranked.sort()
         if not ranked:
-            still_dead.append(c['name'])
-            # 保留原线路，避免频道表缩水（客户端会快速失败换线）
-            ranked = [(1, 0, 99, u) for u in c['urls'][:2]]
+            # 全死频道：近期还活过的保留 1 条最优历史线路等待复测，否则剔除
+            now = time.time()
+            recent = [u for u in c['urls']
+                      if (stats.get(u) or {}).get('last_ok', 0) > now - KEEP_DEAD_DAYS * 86400]
+            if not recent:
+                still_dead.append(c['name'])
+                continue
+            best = max(recent, key=lambda u: ((stats.get(u) or {}).get('last_ok', 0),
+                                              -(stats.get(u) or {}).get('ms', 99999)))
+            ranked = [(2, 0, 99, best)]
         else:
             kept += 1
             if res[ranked[0][3]]['seg']:
