@@ -17,6 +17,7 @@ jobs:
         run: |
           echo "tag=$(date +%Y%m%d-%H%M)" >> $GITHUB_ENV
           echo "commitS=$(date +%Y%m%d%H%M)" >> $GITHUB_ENV
+          echo "vcode=$(date +%y%m%d%H)" >> $GITHUB_ENV
 
       - name: Checkout Source Code
         run: |
@@ -28,6 +29,9 @@ jobs:
           echo '修改VersionName'
           sed -i "/versionName/s#[0-9a-zA-Z_\.\'\"-]\+\$#\'${{ env.tag }}\'#" app/build.gradle
           sed -i "/android:text=/s#=\"#=\"${{ env.tag }}\\\\n\\\\n#" app/src/main/res/layout/dialog_about.xml
+          echo 'versionCode 递增，后续版本可直接覆盖升级'
+          sed -i "s#^\( *\)versionCode [0-9]\+\$#\1versionCode ${{ env.vcode }}#" app/build.gradle
+          grep -n 'versionCode' app/build.gradle | head -n 3
           echo 'crosswalk源，防挂'
           if grep -q 'crosswalk' build.gradle; then
             sed -i "/crosswalk/a\        maven { url 'https://j4uq.github.io/crosswalk/releases/crosswalk/android/maven2' }" build.gradle
@@ -60,6 +64,16 @@ jobs:
           assert n == 1, 'app_name not found in strings.xml'
           open(sp, 'w', encoding='utf-8').write(s2)
           print('app_name patched -> 电视简单化')
+          am = 'app/src/main/AndroidManifest.xml'
+          s = open(am, encoding='utf-8').read()
+          if 'xmlns:tools' not in s:
+              s = s.replace('<manifest ', '<manifest xmlns:tools="http://schemas.android.com/tools" ', 1)
+          assert '</manifest>' in s, 'manifest close tag missing'
+          drop = ('    <uses-permission android:name="android.permission.GET_TASKS" tools:node="remove"/>\n'
+                  '    <uses-permission android:name="android.permission.MOUNT_UNMOUNT_FILESYSTEMS" tools:node="remove"/>\n')
+          s = s.replace('</manifest>', drop + '</manifest>', 1)
+          open(am, 'w', encoding='utf-8').write(s)
+          print('patched: drop GET_TASKS + MOUNT_UNMOUNT_FILESYSTEMS (code never calls them)')
           ac = 'app/src/main/java/com/github/tvbox/osc/api/ApiConfig.java'
           helper = '''    private static final java.util.LinkedHashSet<String> failoverTried = new java.util.LinkedHashSet<String>();
 
