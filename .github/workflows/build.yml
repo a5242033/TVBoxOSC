@@ -17,6 +17,7 @@ jobs:
         run: |
           echo "tag=$(date +%Y%m%d-%H%M)" >> $GITHUB_ENV
           echo "commitS=$(date +%Y%m%d%H%M)" >> $GITHUB_ENV
+          echo "verC=$(date +%y%m%d%H)" >> $GITHUB_ENV
 
       - name: Checkout Source Code
         run: |
@@ -27,6 +28,8 @@ jobs:
         run: |
           echo '修改VersionName'
           sed -i "/versionName/s#[0-9a-zA-Z_\.\'\"-]\+\$#\'${{ env.tag }}\'#" app/build.gradle
+          echo '修改versionCode为日期递增，保证覆盖安装'
+          sed -i "/versionCode/s#[0-9]\+\$#${{ env.verC }}#" app/build.gradle
           sed -i "/android:text=/s#=\"#=\"${{ env.tag }}\\\\n\\\\n#" app/src/main/res/layout/dialog_about.xml
           echo 'crosswalk源，防挂'
           if grep -q 'crosswalk' build.gradle; then
