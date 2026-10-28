@@ -26,6 +26,16 @@
  "sites": [
   {
    "key": "cms01",
+   "name": "影视 · 暴風",
+   "type": 1,
+   "api": "https://bfzyapi.com/api.php/provide/vod/",
+   "searchable": 1,
+   "quickSearch": 1,
+   "filterable": 1,
+   "changeable": 1
+  },
+  {
+   "key": "cms02",
    "name": "影视 · 非凡影视",
    "type": 1,
    "api": "http://ffzy5.tv/api.php/provide/vod/",
@@ -35,7 +45,7 @@
    "changeable": 1
   },
   {
-   "key": "cms02",
+   "key": "cms03",
    "name": "影视 · 建安",
    "type": 1,
    "api": "http://154.219.117.232:9981/jacloudapi.php/provide/vod/",
@@ -50,7 +60,7 @@
    "playerType": 2
   },
   {
-   "key": "cms03",
+   "key": "cms04",
    "name": "影视 · 金鹰",
    "type": 1,
    "api": "https://jyzyapi.com/api.php/provide/vod/",
@@ -60,30 +70,10 @@
    "changeable": 1
   },
   {
-   "key": "cms04",
+   "key": "cms05",
    "name": "影视 · 虎牙",
    "type": 1,
    "api": "https://www.huyaapi.com/api.php/provide/vod/from/hym3u8",
-   "searchable": 1,
-   "quickSearch": 1,
-   "filterable": 1,
-   "changeable": 1
-  },
-  {
-   "key": "cms05",
-   "name": "影视 · 暴風",
-   "type": 1,
-   "api": "https://bfzyapi.com/api.php/provide/vod/",
-   "searchable": 1,
-   "quickSearch": 1,
-   "filterable": 1,
-   "changeable": 1
-  },
-  {
-   "key": "cms06",
-   "name": "影视 · 优质",
-   "type": 1,
-   "api": "https://api.yyzy-tv.vip/inc/apijson.php",
    "searchable": 1,
    "quickSearch": 1,
    "filterable": 1,
