@@ -310,6 +310,7 @@ jobs:
 
               private static int liveUrlScore(String url, boolean fromPrimary) {
                   if (url.indexOf("://[") >= 0) return -1;
+                  if (!fromPrimary) return 0;
                   String host = "";
                   try {
                       host = new java.net.URL(url).getHost();
@@ -444,12 +445,16 @@ jobs:
                       boolean extIsGuovin = extUrl.toLowerCase().contains("guovin");
                       if (extIsGuovin) {
                           tryUrls.add(new String[]{"a", extUrl});
+                      } else if (extOk) {
+                          tryUrls.add(new String[]{"a", extUrl});
+                          tryUrls.add(new String[]{"b", "https://gh-proxy.com/https://raw.githubusercontent.com/Guovin/iptv-api/gd/output/result.m3u"});
+                          tryUrls.add(new String[]{"b", "https://gh.llkk.cc/https://raw.githubusercontent.com/Guovin/iptv-api/gd/output/result.m3u"});
+                          tryUrls.add(new String[]{"b", "https://raw.githubusercontent.com/Guovin/iptv-api/gd/output/result.m3u"});
                       } else {
                           tryUrls.add(new String[]{"a", "https://gh-proxy.com/https://raw.githubusercontent.com/Guovin/iptv-api/gd/output/result.m3u"});
                           tryUrls.add(new String[]{"a", "https://gh.llkk.cc/https://raw.githubusercontent.com/Guovin/iptv-api/gd/output/result.m3u"});
                           tryUrls.add(new String[]{"a", "https://raw.githubusercontent.com/Guovin/iptv-api/gd/output/result.m3u"});
                       }
-                      if (!extIsGuovin && extOk) tryUrls.add(new String[]{"b", extUrl});
                       byte[] listA = null;
                       byte[] listB = null;
                       for (String[] sd : tryUrls) {
