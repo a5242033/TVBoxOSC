@@ -336,6 +336,26 @@ jobs:
           open(p, 'w', encoding='utf-8').write(s)
           print('app name patched')
           PYEOF
+          echo '默认开启 M3U8 广告过滤'
+          python3 - <<'PYEOF'
+          import sys
+          p = 'app/src/main/java/com/github/tvbox/osc/base/App.java'
+          s = open(p, encoding='utf-8').read()
+          if 'M3U8_PURIFY_DEFAULT' in s:
+              print('already patched'); sys.exit(0)
+          anchor = '        if (!Hawk.contains(HawkConfig.LIVE_CONNECT_TIMEOUT)) {'
+          if anchor not in s:
+              print('PURIFY-ANCHOR-MISS'); sys.exit(1)
+          add = (
+              '        // M3U8_PURIFY_DEFAULT: 默认开启 m3u8 广告过滤（设置里可关）\n' +
+              '        if (!Hawk.contains(HawkConfig.M3U8_PURIFY)) {\n' +
+              '            Hawk.put(HawkConfig.M3U8_PURIFY, true);\n' +
+              '        }\n' +
+              '\n')
+          s = s.replace(anchor, add + anchor, 1)
+          open(p, 'w', encoding='utf-8').write(s)
+          print('m3u8 purify default on')
+          PYEOF
           echo 'SourceViewModel: 分类(sort)结果落盘，冷启动直接用上次的分类立即出墙'
           python3 - <<'PYEOF'
           import sys
