@@ -156,26 +156,6 @@
   },
   {
    "key": "cms14",
-   "name": "影视 · 速播",
-   "type": 1,
-   "api": "https://subocaiji.com/api.php/provide/vod/",
-   "searchable": 1,
-   "quickSearch": 1,
-   "filterable": 1,
-   "changeable": 1
-  },
-  {
-   "key": "cms15",
-   "name": "影视 · 建安",
-   "type": 1,
-   "api": "http://154.219.117.232:9981/jacloudapi.php/provide/vod",
-   "searchable": 1,
-   "quickSearch": 1,
-   "filterable": 1,
-   "changeable": 1
-  },
-  {
-   "key": "cms16",
    "name": "影视 · 极速",
    "type": 1,
    "api": "https://jszyapi.com/api.php/provide/vod/",
@@ -185,7 +165,7 @@
    "changeable": 1
   },
   {
-   "key": "cms17",
+   "key": "cms15",
    "name": "影视 · 玉兔",
    "type": 1,
    "api": "https://apiyutu.com/api.php/provide/vod/",
@@ -195,7 +175,7 @@
    "changeable": 1
   },
   {
-   "key": "cms18",
+   "key": "cms16",
    "name": "影视 · 无尽",
    "type": 1,
    "api": "https://api.wujinapi.com/api.php/provide/vod/",
@@ -205,7 +185,7 @@
    "changeable": 1
   },
   {
-   "key": "cms19",
+   "key": "cms17",
    "name": "影视 · 索尼",
    "type": 1,
    "api": "https://suoniapi.com/api.php/provide/vod",
@@ -215,7 +195,7 @@
    "changeable": 1
   },
   {
-   "key": "js20",
+   "key": "js18",
    "name": "官源 • 优酷",
    "type": 3,
    "api": "https://ghfast.top/https://raw.githubusercontent.com/a5242033/TVBoxOSC/master/config/assets/lib/drpy2.min.js",
@@ -226,7 +206,7 @@
    "playerType": 1
   },
   {
-   "key": "js21",
+   "key": "js19",
    "name": "茶杯狐 • cupfox.in",
    "type": 3,
    "api": "https://ghfast.top/https://raw.githubusercontent.com/a5242033/TVBoxOSC/master/config/assets/lib/drpy2.min.js",
