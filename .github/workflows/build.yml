@@ -121,6 +121,92 @@ jobs:
           open(p, 'w', encoding='utf-8').write(s)
           print('home cache-first patched')
           PYEOF
+          echo 'LivePlayActivity: 开播前并行探线，死线不再干等超时'
+          python3 - <<'PYEOF'
+          import sys
+          p = 'app/src/main/java/com/github/tvbox/osc/ui/activity/LivePlayActivity.java'
+          s = open(p, encoding='utf-8').read()
+          if 'LIVE_RACE' in s:
+              print('live race already patched'); sys.exit(0)
+          anchor = '    private boolean canReusePlayer(int previousLivePlayerType) {'
+          if anchor not in s:
+              print('RACE-ANCHOR-MISS'); sys.exit(1)
+          helpers = (
+              '    // LIVE_RACE: 开播前并行探测前几条线路，谁先回谁上，避免死线干等 5s 超时\n'
+              '    private int raceBestSourceIndex(final com.github.tvbox.osc.bean.LiveChannelItem item) {\n'
+              '        try {\n'
+              '            java.util.ArrayList<String> urls = item.getChannelUrls();\n'
+              '            if (urls == null || urls.size() <= 1) return -1;\n'
+              '            int n = Math.min(urls.size(), 4);\n'
+              '            java.util.concurrent.ExecutorService ex = java.util.concurrent.Executors.newFixedThreadPool(n);\n'
+              '            java.util.concurrent.CompletionService<Integer> cs = new java.util.concurrent.ExecutorCompletionService<Integer>(ex);\n'
+              '            for (int i = 0; i < n; i++) {\n'
+              '                final int idx = i;\n'
+              '                final String u = urls.get(i);\n'
+              '                cs.submit(new java.util.concurrent.Callable<Integer>() {\n'
+              '                    public Integer call() {\n'
+              '                        return probeLiveLine(u) ? Integer.valueOf(idx) : null;\n'
+              '                    }\n'
+              '                });\n'
+              '            }\n'
+              '            Integer best = null;\n'
+              '            long deadline = System.currentTimeMillis() + 1600;\n'
+              '            for (int i = 0; i < n; i++) {\n'
+              '                long left = deadline - System.currentTimeMillis();\n'
+              '                if (left <= 0) break;\n'
+              '                java.util.concurrent.Future<Integer> f = cs.poll(left, java.util.concurrent.TimeUnit.MILLISECONDS);\n'
+              '                if (f == null) break;\n'
+              '                best = f.get();\n'
+              '                if (best != null) break;\n'
+              '            }\n'
+              '            ex.shutdownNow();\n'
+              '            if (best != null && best.intValue() != item.getSourceIndex()) {\n'
+              '                LOG.i("echo-live-race pick " + best + " of " + n);\n'
+              '                return best.intValue();\n'
+              '            }\n'
+              '            return -1;\n'
+              '        } catch (Throwable th) {\n'
+              '            return -1;\n'
+              '        }\n'
+              '    }\n'
+              '\n'
+              '    private boolean probeLiveLine(String url) {\n'
+              '        java.net.HttpURLConnection c = null;\n'
+              '        try {\n'
+              '            c = (java.net.HttpURLConnection) new java.net.URL(url).openConnection();\n'
+              '            c.setConnectTimeout(1200);\n'
+              '            c.setReadTimeout(1200);\n'
+              '            c.setInstanceFollowRedirects(true);\n'
+              '            c.setRequestProperty("User-Agent", "okhttp/3.8.1");\n'
+              '            c.setRequestProperty("Range", "bytes=0-1023");\n'
+              '            int code = c.getResponseCode();\n'
+              '            return code >= 200 && code < 400;\n'
+              '        } catch (Throwable th) {\n'
+              '            return false;\n'
+              '        } finally {\n'
+              '            try { if (c != null) c.disconnect(); } catch (Throwable ignored) {}\n'
+              '        }\n'
+              '    }\n'
+              '\n'
+          )
+          s = s.replace(anchor, helpers + anchor, 1)
+          old = '            String liveUrl = currentLiveChannelItem.getUrl();\n'
+          if old not in s:
+              print('RACE-USE-ANCHOR-MISS'); sys.exit(1)
+          new = (
+              '            String liveUrl = currentLiveChannelItem.getUrl();\n'
+              '            if (Hawk.get("live_race_enable", true)) {\n'
+              '                int _best = raceBestSourceIndex(currentLiveChannelItem);\n'
+              '                if (_best >= 0) {\n'
+              '                    currentLiveChannelItem.setSourceIndex(_best);\n'
+              '                    liveUrl = currentLiveChannelItem.getUrl();\n'
+              '                }\n'
+              '            }\n'
+          )
+          s = s.replace(old, new, 1)
+          open(p, 'w', encoding='utf-8').write(s)
+          print('live race patched')
+          PYEOF
           echo 'SourceViewModel: 分类(sort)结果落盘，冷启动直接用上次的分类立即出墙'
           python3 - <<'PYEOF'
           import sys
@@ -262,3 +348,6 @@ jobs:
           allowUpdates: true
           artifacts: |
             TVBoxOSC/apk/*.apk
+            config/jsm.json
+            config/jsm-repo.json
+            config/live.m3u

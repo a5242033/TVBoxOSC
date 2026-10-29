@@ -1,0 +1,144 @@
+{
+ "sites": [
+  {
+   "name": "影视 • 量子[直连]",
+   "api": "https://cj.lziapi.com/api.php/provide/vod/",
+   "from": "qist"
+  },
+  {
+   "name": "影视 • 非凡[直连]",
+   "api": "http://ffzy.tv/api.php/provide/vod/",
+   "from": "qist"
+  },
+  {
+   "name": "影视 • 卧龙资源[直连]",
+   "api": "https://wolongzyw.com/api.php/provide/vod/?ac=list",
+   "from": "qist"
+  },
+  {
+   "name": "影视 • 尤酷[直连]",
+   "api": "https://api.ukuapi.com/api.php/provide/vod/?ac=list",
+   "from": "qist"
+  },
+  {
+   "name": "影视 • 金蝉",
+   "api": "https://zy.jinchancaiji.com/api.php/provide/vod",
+   "from": "qist"
+  },
+  {
+   "name": "影视 • 小绵阳",
+   "api": "https://vs.okcdn100.top/api.php/provide/vod",
+   "from": "qist"
+  },
+  {
+   "name": "百度",
+   "api": "https://api.apibdzy.com/api.php/provide/vod?ac=list",
+   "from": "qist"
+  },
+  {
+   "name": "👒┃小胡┃资源┃",
+   "api": "http://c.小胡.icu/api.php/provide/vod/",
+   "from": "lightconer"
+  },
+  {
+   "name": "🕹️淘片┃采集",
+   "api": "https://taopianapi.com/cjapi/mc/vod/json.html",
+   "from": "lightconer"
+  },
+  {
+   "name": "🥗┃非凡┃资源",
+   "api": "http://ffzy1.tv/api.php/provide/vod/",
+   "from": "lightconer"
+  },
+  {
+   "name": "🥑┃量子┃资源",
+   "api": "https://lzizy1.com/api.php/provide/vod/",
+   "from": "lightconer"
+  },
+  {
+   "name": "🦁┃四九┃资源",
+   "api": "https://49zy1.com/api.php/provide/vod/?ac=list",
+   "from": "lightconer"
+  },
+  {
+   "name": "🛰️飞速┃采集",
+   "api": "https://www.feisuzyapi.com/api.php/provide/vod/?ac=list",
+   "from": "lightconer"
+  },
+  {
+   "name": "🐯┃奇虎┃采集",
+   "api": "https://caiji.qhzyapi.com/api.php/provide/vod/",
+   "from": "lightconer"
+  },
+  {
+   "name": "⛱┃可可┃采集",
+   "api": "https://kekezy1.com/api.php/provide/vod/?ac=list",
+   "from": "lightconer"
+  },
+  {
+   "name": "🌪️暴风影音",
+   "api": "https://app.bfzyapi.com/api.php/provide/vod/",
+   "from": "lightconer"
+  },
+  {
+   "name": "🎶明星┃MV",
+   "api": "https://mv.wogg.link/mv/vod",
+   "from": "lightconer"
+  },
+  {
+   "name": "红牛资源(切)",
+   "api": "https://www.hongniuzy2.com/api.php/provide/vod/",
+   "from": "lightconer"
+  },
+  {
+   "name": "闪电资源(切)",
+   "api": "http://sdzyapi.com/api.php/provide/vod/",
+   "from": "lightconer"
+  },
+  {
+   "name": "光速资源(切)",
+   "api": "https://api.guangsuapi.com/api.php/provide/vod/",
+   "from": "lightconer"
+  },
+  {
+   "name": "🔥┃小胡┃4K",
+   "api": "http://xh1.xn--yetu07f.icu/api.php/provide/vod/",
+   "from": "lightconer"
+  },
+  {
+   "name": "🧡┃初恋┃官源",
+   "api": "https://video.adminqt.cn/api.php/provide/vod/",
+   "from": "lightconer"
+  },
+  {
+   "name": "🐻┃熊掌┃高清",
+   "api": "https://xzcjz.com/api.php/provide/vod",
+   "from": "lightconer"
+  },
+  {
+   "name": "🐓┃爱坤┃资源",
+   "api": "https://ikunzyapi.com/api.php/provide/vod ",
+   "from": "lightconer"
+  },
+  {
+   "name": "牛牛",
+   "api": "https://api.niuniuzy.me/api.php/provide/vod",
+   "from": "krypth"
+  },
+  {
+   "name": "非凡",
+   "api": "http://cj.ffzyapi.com/api.php/provide/vod/",
+   "from": "krypth"
+  },
+  {
+   "name": "樱花",
+   "api": "https://m3u8.apiyhzy.com/api.php/provide/vod/",
+   "from": "krypth"
+  },
+  {
+   "name": "最大",
+   "api": "http://zuidazy.me/api.php/provide/vod/",
+   "from": "krypth"
+  }
+ ]
+}

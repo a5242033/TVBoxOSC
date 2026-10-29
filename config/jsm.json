@@ -8,7 +8,7 @@
    "ua": "okhttp/3.8.1",
    "timeout": 6,
    "epg": "https://epg.cdn.loc.cc/?ch={name}&date={date}",
-   "logo": "https://logo.wyfc.qzz.io/{name}.png"
+   "logo": ""
   },
   {
    "name": "央卫直播(自动更新)",
@@ -18,7 +18,7 @@
    "ua": "okhttp/3.8.1",
    "timeout": 6,
    "epg": "https://epg.cdn.loc.cc/?ch={name}&date={date}",
-   "logo": "https://logo.wyfc.qzz.io/{name}.png"
+   "logo": ""
   }
  ],
  "wallpaper": "https://wallpaper-1tg.pages.dev/",

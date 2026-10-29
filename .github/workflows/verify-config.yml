@@ -1,0 +1,29 @@
+name: Verify Config Mirrors
+
+on:
+  push:
+    paths:
+      - 'config/**'
+      - 'scripts/check_mirrors.py'
+      - '.github/workflows/verify-config.yml'
+  schedule:
+    - cron: '17 */6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  mirrors:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Check mirrors converge
+        run: python scripts/check_mirrors.py --wait 600
