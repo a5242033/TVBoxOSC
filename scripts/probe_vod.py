@@ -31,7 +31,7 @@ MAX_CMS = 40
 AUTO_ADD_CANDIDATES = False
 DROP_AFTER = 3        # 连续失败几次才剔除
 MIN_CMS = 12          # 存活站下限：低于此数就回补，避免首页被削空
-DEFAULT_SITE = '影视 · 虎牙'  # 首页默认站：封面 6/6 可达、片库 2025+、199/199 直链
+DEFAULT_SITE = '影视 · 360'  # 首页默认站：8 部抽样 100% 可播 + 封面全出
 
 # 首页之后要露脸的非 CMS 站（"最新影视"入口），不能被每日排序挤到最后
 EARLY_NAMES = {'官源 • 优酷'}
