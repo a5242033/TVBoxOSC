@@ -26,6 +26,16 @@
  "sites": [
   {
    "key": "cms01",
+   "name": "影视 · 360",
+   "type": 1,
+   "api": "https://360zy.com/api.php/provide/vod/",
+   "searchable": 1,
+   "quickSearch": 1,
+   "filterable": 1,
+   "changeable": 1
+  },
+  {
+   "key": "cms02",
    "name": "影视 · 虎牙",
    "type": 1,
    "api": "https://www.huyaapi.com/api.php/provide/vod/from/hym3u8",
@@ -35,7 +45,7 @@
    "changeable": 1
   },
   {
-   "key": "js02",
+   "key": "js03",
    "name": "华谊 • 影视",
    "type": 3,
    "api": "https://ghfast.top/https://raw.githubusercontent.com/a5242033/TVBoxOSC/master/config/assets/py/huayi.py",
@@ -45,7 +55,7 @@
    "playerType": 1
   },
   {
-   "key": "cms03",
+   "key": "cms04",
    "name": "影视 · 创享",
    "type": 1,
    "api": "https://ys.cxkjg.cn/api/provide/vod/",
@@ -55,20 +65,10 @@
    "changeable": 1
   },
   {
-   "key": "cms04",
+   "key": "cms05",
    "name": "影视 · 暴風",
    "type": 1,
    "api": "https://bfzyapi.com/api.php/provide/vod/",
-   "searchable": 1,
-   "quickSearch": 1,
-   "filterable": 1,
-   "changeable": 1
-  },
-  {
-   "key": "cms05",
-   "name": "影视 · 360",
-   "type": 1,
-   "api": "https://360zy.com/api.php/provide/vod/",
    "searchable": 1,
    "quickSearch": 1,
    "filterable": 1,
