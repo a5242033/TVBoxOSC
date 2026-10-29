@@ -235,6 +235,31 @@ jobs:
           open(p, 'w', encoding='utf-8').write(s)
           print('app init patched')
           PYEOF
+          echo 'HomeActivity: 过滤成人向分类标签'
+          python3 - <<'PYEOF'
+          import sys
+          p = 'app/src/main/java/com/github/tvbox/osc/ui/activity/HomeActivity.java'
+          s = open(p, encoding='utf-8').read()
+          if 'DIRTY_FILTER' in s:
+              print('already patched'); sys.exit(0)
+          old = '        if (newSortData == null) {\n            newSortData = new ArrayList<>();\n        }\n'
+          if old not in s:
+              print('UPDATE-SORT-ANCHOR-MISS'); sys.exit(1)
+          add = (
+              '        // DIRTY_FILTER: 去掉成人向分类标签（伦理/福利/写真/三级/无码/里番/情色/成人/少妇）\n'
+              '        try {\n'
+              '            java.util.Iterator<MovieSort.SortData> _it = newSortData.iterator();\n'
+              '            while (_it.hasNext()) {\n'
+              '                MovieSort.SortData _sd = _it.next();\n'
+              '                if (_sd != null && _sd.name != null && _sd.name.matches(".*(伦理|福利|写真|三级|无码|里番|情色|成人|少妇).*")) {\n'
+              '                    _it.remove();\n'
+              '                }\n'
+              '            }\n'
+              '        } catch (Throwable ignored) {}\n')
+          s = s.replace(old, old + add, 1)
+          open(p, 'w', encoding='utf-8').write(s)
+          print('dirty filter patched')
+          PYEOF
           echo 'SourceViewModel: 分类(sort)结果落盘，冷启动直接用上次的分类立即出墙'
           python3 - <<'PYEOF'
           import sys
