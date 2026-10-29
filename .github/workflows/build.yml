@@ -284,6 +284,33 @@ jobs:
           open(p, 'w', encoding='utf-8').write(s)
           print('tap switch patched')
           PYEOF
+          echo 'HomeActivity: dispatchTouchEvent 兜底——左上角点一下就切站点'
+          python3 - <<'PYEOF'
+          import sys
+          p = 'app/src/main/java/com/github/tvbox/osc/ui/activity/HomeActivity.java'
+          s = open(p, encoding='utf-8').read()
+          if 'TAP_SWITCH2' in s:
+              print('already patched'); sys.exit(0)
+          anchor = '    public boolean dispatchKeyEvent(KeyEvent event) {'
+          if anchor not in s:
+              print('DISPATCH-ANCHOR-MISS'); sys.exit(1)
+          add = (
+              '    // TAP_SWITCH2: 左上角（站名区域）点击/触摸即弹站点切换\n'
+              '    @Override\n'
+              '    public boolean dispatchTouchEvent(android.view.MotionEvent _ev) {\n'
+              '        try {\n'
+              '            if (_ev.getAction() == android.view.MotionEvent.ACTION_UP\n'
+              '                    && _ev.getY() < 120 && _ev.getX() < 520) {\n'
+              '                showSiteSwitch();\n'
+              '                return true;\n'
+              '            }\n'
+              '        } catch (Throwable ignored) {}\n'
+              '        return super.dispatchTouchEvent(_ev);\n'
+              '    }\n\n')
+          s = s.replace(anchor, add + anchor, 1)
+          open(p, 'w', encoding='utf-8').write(s)
+          print('tap switch2 patched')
+          PYEOF
           echo 'SourceViewModel: 分类(sort)结果落盘，冷启动直接用上次的分类立即出墙'
           python3 - <<'PYEOF'
           import sys
