@@ -310,6 +310,22 @@ jobs:
           open(p, 'w', encoding='utf-8').write(s)
           print('tap switch2 patched')
           PYEOF
+          echo '应用名与图标：电视简单化'
+          for d in hdpi xhdpi xxhdpi xxxhdpi; do cp ../assets/icons/app_icon_$d.png app/src/main/res/drawable-$d/app_icon.png; done
+          python3 - <<'PYEOF'
+          import sys
+          p = 'app/src/main/res/values/strings.xml'
+          s = open(p, encoding='utf-8').read()
+          if 'APP_NAME_ICON' in s:
+              print('already patched'); sys.exit(0)
+          old = '<string name="app_name">TVBox</string>'
+          if old not in s:
+              print('APPNAME-ANCHOR-MISS'); sys.exit(1)
+          s = s.replace(old, '<string name="app_name">电视简单化</string>', 1)
+          s = s.replace('<resources>', '<resources>\n    <!-- APP_NAME_ICON -->', 1)
+          open(p, 'w', encoding='utf-8').write(s)
+          print('app name patched')
+          PYEOF
           echo 'SourceViewModel: 分类(sort)结果落盘，冷启动直接用上次的分类立即出墙'
           python3 - <<'PYEOF'
           import sys
