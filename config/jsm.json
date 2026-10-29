@@ -26,6 +26,65 @@
  "sites": [
   {
    "key": "cms01",
+   "name": "影视 · 新浪资源",
+   "type": 1,
+   "api": "https://api.xinlangapi.com/xinlangapi.php/provide/vod/",
+   "searchable": 1,
+   "quickSearch": 1,
+   "filterable": 1,
+   "changeable": 1,
+   "categories": [
+    "大陆综艺",
+    "大陆剧",
+    "电影",
+    "电视剧",
+    "动漫",
+    "综艺",
+    "纪录片",
+    "动作片",
+    "爱情片",
+    "科幻片",
+    "战争片",
+    "剧情片",
+    "恐怖片",
+    "喜剧片",
+    "港澳剧",
+    "台湾剧",
+    "欧美剧",
+    "动画片",
+    "韩剧",
+    "日剧",
+    "泰剧",
+    "体育",
+    "短剧",
+    "预告片",
+    "足球",
+    "篮球",
+    "台球",
+    "其他赛事",
+    "中国动漫",
+    "日本动漫",
+    "欧美动漫",
+    "灾难片",
+    "悬疑片",
+    "犯罪片",
+    "奇幻片",
+    "日韩综艺",
+    "港台综艺",
+    "欧美综艺",
+    "古装仙侠",
+    "现代都市",
+    "穿越年代",
+    "言情总裁",
+    "重生民国",
+    "反转爽剧",
+    "脑洞悬疑",
+    "擦边短剧",
+    "AI漫剧"
+   ]
+  },
+  {
+   "key": "cms02",
    "name": "影视 · 优质",
    "type": 1,
    "api": "https://api.yyzy-tv.vip/inc/apijson.php",
@@ -99,7 +158,7 @@
    ]
   },
   {
-   "key": "cms02",
+   "key": "cms03",
    "name": "影视 · 360",
    "type": 1,
    "api": "https://360zy.com/api.php/provide/vod/",
@@ -161,7 +220,7 @@
    ]
   },
   {
-   "key": "cms03",
+   "key": "cms04",
    "name": "影视 · 创享",
    "type": 1,
    "api": "https://ys.cxkjg.cn/api/provide/vod/",
@@ -189,7 +248,7 @@
    ]
   },
   {
-   "key": "js04",
+   "key": "js05",
    "name": "华谊 • 影视",
    "type": 3,
    "api": "https://ghfast.top/https://raw.githubusercontent.com/a5242033/TVBoxOSC/master/config/assets/py/huayi.py",
@@ -199,7 +258,7 @@
    "playerType": 1
   },
   {
-   "key": "cms05",
+   "key": "cms06",
    "name": "影视 · 天涯",
    "type": 1,
    "api": "http://tyyszy.com/api.php/provide/vod",
@@ -249,7 +308,7 @@
    ]
   },
   {
-   "key": "cms06",
+   "key": "cms07",
    "name": "影视 · 豆瓣",
    "type": 1,
    "api": "https://caiji.dbzy5.com/api.php/provide/vod/",
@@ -313,7 +372,7 @@
    ]
   },
   {
-   "key": "cms07",
+   "key": "cms08",
    "name": "影视 · 非凡影视",
    "type": 1,
    "api": "http://ffzy5.tv/api.php/provide/vod/",
@@ -355,7 +414,7 @@
    ]
   },
   {
-   "key": "cms08",
+   "key": "cms09",
    "name": "影视 · 电影天堂",
    "type": 1,
    "api": "http://caiji.dyttzyapi.com/api.php/provide/vod",
@@ -398,7 +457,7 @@
    ]
   },
   {
-   "key": "cms09",
+   "key": "cms10",
    "name": "影视 · 金鹰",
    "type": 1,
    "api": "http://jyzyapi.com/provide/vod/from/jinyingm3u8/",
@@ -453,7 +512,7 @@
    ]
   },
   {
-   "key": "cms10",
+   "key": "cms11",
    "name": "影视 · 茅台",
    "type": 1,
    "api": "https://mtzy.me/api.php/provide/vod/",
@@ -518,7 +577,7 @@
    ]
   },
   {
-   "key": "cms11",
+   "key": "cms12",
    "name": "影视 · 极速",
    "type": 1,
    "api": "https://jszyapi.com/api.php/provide/vod/",
@@ -577,7 +636,7 @@
    ]
   },
   {
-   "key": "cms12",
+   "key": "cms13",
    "name": "影视 · 玉兔",
    "type": 1,
    "api": "https://apiyutu.com/api.php/provide/vod/",
@@ -611,7 +670,7 @@
    ]
   },
   {
-   "key": "js13",
+   "key": "js14",
    "name": "官源 • 优酷",
    "type": 3,
    "api": "https://ghfast.top/https://raw.githubusercontent.com/a5242033/TVBoxOSC/master/config/assets/lib/drpy2.min.js",
@@ -622,7 +681,7 @@
    "playerType": 1
   },
   {
-   "key": "cms14",
+   "key": "cms15",
    "name": "影视 · 光速",
    "type": 1,
    "api": "https://api.guangsuapi.com/api.php/provide/vod/from/gsm3u8/",
@@ -665,65 +724,6 @@
     "欧美综艺",
     "日本动漫",
     "欧美动漫",
-    "古装仙侠",
-    "现代都市",
-    "穿越年代",
-    "言情总裁",
-    "重生民国",
-    "反转爽剧",
-    "脑洞悬疑",
-    "擦边短剧",
-    "AI漫剧"
-   ]
-  },
-  {
-   "key": "cms15",
-   "name": "影视 · 新浪资源",
-   "type": 1,
-   "api": "https://api.xinlangapi.com/xinlangapi.php/provide/vod/",
-   "searchable": 1,
-   "quickSearch": 1,
-   "filterable": 1,
-   "changeable": 1,
-   "categories": [
-    "大陆综艺",
-    "大陆剧",
-    "电影",
-    "电视剧",
-    "动漫",
-    "综艺",
-    "纪录片",
-    "动作片",
-    "爱情片",
-    "科幻片",
-    "战争片",
-    "剧情片",
-    "恐怖片",
-    "喜剧片",
-    "港澳剧",
-    "台湾剧",
-    "欧美剧",
-    "动画片",
-    "韩剧",
-    "日剧",
-    "泰剧",
-    "体育",
-    "短剧",
-    "预告片",
-    "足球",
-    "篮球",
-    "台球",
-    "其他赛事",
-    "中国动漫",
-    "日本动漫",
-    "欧美动漫",
-    "灾难片",
-    "悬疑片",
-    "犯罪片",
-    "奇幻片",
-    "日韩综艺",
-    "港台综艺",
-    "欧美综艺",
     "古装仙侠",
     "现代都市",
     "穿越年代",
