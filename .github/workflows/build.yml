@@ -295,11 +295,22 @@ jobs:
           if anchor not in s:
               print('DISPATCH-ANCHOR-MISS'); sys.exit(1)
           add = (
+              '    // TAP_SWITCH2: 只在站名文字的真实矩形内响应，绝不吞分类标签的点击\n'
+              '    private boolean _inSiteNameRect(float _x, float _y) {\n'
+              '        try {\n'
+              '            if (tvName == null || tvName.getWidth() <= 0 || tvName.getHeight() <= 0) return false;\n'
+              '            int[] _loc = new int[2];\n'
+              '            tvName.getLocationOnScreen(_loc);\n'
+              '            return _x >= _loc[0] && _x <= _loc[0] + tvName.getWidth()\n'
+              '                    && _y >= _loc[1] && _y <= _loc[1] + tvName.getHeight();\n'
+              '        } catch (Throwable ignored) { return false; }\n'
+              '    }\n'
+              '\n'
               '    // TAP_SWITCH2: 左上角（站名区域）点击/触摸即弹站点切换\n'
               '    public boolean dispatchTouchEvent(android.view.MotionEvent _ev) {\n'
               '        try {\n'
               '            if (_ev.getAction() == android.view.MotionEvent.ACTION_UP\n'
-              '                    && _ev.getY() < 120 && _ev.getX() < 520) {\n'
+              '                    && _inSiteNameRect(_ev.getX(), _ev.getY())) {\n'
               '                showSiteSwitch();\n'
               '                return true;\n'
               '            }\n'
