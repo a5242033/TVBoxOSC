@@ -284,18 +284,18 @@ jobs:
           open(p, 'w', encoding='utf-8').write(s)
           print('tap switch patched')
           PYEOF
-          echo 'HomeActivity: dispatchTouchEvent 兜底——左上角点一下就切站点'
+          echo 'HomeActivity: 站名可点切换（只在站名矩形内生效）'
           python3 - <<'PYEOF'
           import sys
           p = 'app/src/main/java/com/github/tvbox/osc/ui/activity/HomeActivity.java'
           s = open(p, encoding='utf-8').read()
           if 'TAP_SWITCH2' in s:
               print('already patched'); sys.exit(0)
-          anchor = '    public boolean dispatchKeyEvent(KeyEvent event) {'
+          anchor = '    @Override\n    public boolean dispatchKeyEvent(KeyEvent event) {'
           if anchor not in s:
               print('DISPATCH-ANCHOR-MISS'); sys.exit(1)
-          add = (
-              '    // TAP_SWITCH2: 只在站名文字的真实矩形内响应，绝不吞分类标签的点击\n'
+          block = (
+              '    // TAP_SWITCH2: 只有点在"站名文字"这块矩形里才切站，绝不影响分类标签\n'
               '    private boolean _inSiteNameRect(float _x, float _y) {\n'
               '        try {\n'
               '            if (tvName == null || tvName.getWidth() <= 0 || tvName.getHeight() <= 0) return false;\n'
@@ -304,20 +304,19 @@ jobs:
               '            return _x >= _loc[0] && _x <= _loc[0] + tvName.getWidth()\n'
               '                    && _y >= _loc[1] && _y <= _loc[1] + tvName.getHeight();\n'
               '        } catch (Throwable ignored) { return false; }\n'
-              '    }\n'
-              '\n'
-              '    // TAP_SWITCH2: 左上角（站名区域）点击/触摸即弹站点切换\n'
+              '    }\n\n'
+              '    @Override\n'
               '    public boolean dispatchTouchEvent(android.view.MotionEvent _ev) {\n'
               '        try {\n'
-              '            if (_ev.getAction() == android.view.MotionEvent.ACTION_UP\n'
-              '                    && _inSiteNameRect(_ev.getX(), _ev.getY())) {\n'
+              '            if (_ev.getAction() == android.view.MotionEvent.ACTION_UP && _inSiteNameRect(_ev.getX(), _ev.getY())) {\n'
               '                showSiteSwitch();\n'
               '                return true;\n'
               '            }\n'
               '        } catch (Throwable ignored) {}\n'
               '        return super.dispatchTouchEvent(_ev);\n'
-              '    }\n\n')
-          s = s.replace(anchor, add + anchor, 1)
+              '    }\n\n'
+          )
+          s = s.replace(anchor, block + anchor, 1)
           open(p, 'w', encoding='utf-8').write(s)
           print('tap switch2 patched')
           PYEOF
