@@ -296,7 +296,6 @@ jobs:
               print('DISPATCH-ANCHOR-MISS'); sys.exit(1)
           add = (
               '    // TAP_SWITCH2: 左上角（站名区域）点击/触摸即弹站点切换\n'
-              '    @Override\n'
               '    public boolean dispatchTouchEvent(android.view.MotionEvent _ev) {\n'
               '        try {\n'
               '            if (_ev.getAction() == android.view.MotionEvent.ACTION_UP\n'
