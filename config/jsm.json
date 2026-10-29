@@ -26,16 +26,6 @@
  "sites": [
   {
    "key": "cms01",
-   "name": "影视 · 创享",
-   "type": 1,
-   "api": "https://ys.cxkjg.cn/api/provide/vod/",
-   "searchable": 1,
-   "quickSearch": 1,
-   "filterable": 1,
-   "changeable": 1
-  },
-  {
-   "key": "cms02",
    "name": "影视 · 360",
    "type": 1,
    "api": "https://360zy.com/api.php/provide/vod/",
@@ -45,17 +35,17 @@
    "changeable": 1
   },
   {
-   "key": "cms03",
-   "name": "影视 · 虎牙",
+   "key": "cms02",
+   "name": "影视 · 创享",
    "type": 1,
-   "api": "https://www.huyaapi.com/api.php/provide/vod/from/hym3u8",
+   "api": "https://ys.cxkjg.cn/api/provide/vod/",
    "searchable": 1,
    "quickSearch": 1,
    "filterable": 1,
    "changeable": 1
   },
   {
-   "key": "js04",
+   "key": "js03",
    "name": "华谊 • 影视",
    "type": 3,
    "api": "https://ghfast.top/https://raw.githubusercontent.com/a5242033/TVBoxOSC/master/config/assets/py/huayi.py",
@@ -65,7 +55,7 @@
    "playerType": 1
   },
   {
-   "key": "cms05",
+   "key": "cms04",
    "name": "影视 · 天涯",
    "type": 1,
    "api": "http://tyyszy.com/api.php/provide/vod",
@@ -75,7 +65,7 @@
    "changeable": 1
   },
   {
-   "key": "cms06",
+   "key": "cms05",
    "name": "影视 · 豆瓣",
    "type": 1,
    "api": "https://caiji.dbzy5.com/api.php/provide/vod/",
@@ -85,7 +75,7 @@
    "changeable": 1
   },
   {
-   "key": "cms07",
+   "key": "cms06",
    "name": "影视 · 非凡影视",
    "type": 1,
    "api": "http://ffzy5.tv/api.php/provide/vod/",
@@ -95,7 +85,7 @@
    "changeable": 1
   },
   {
-   "key": "cms08",
+   "key": "cms07",
    "name": "影视 · 电影天堂",
    "type": 1,
    "api": "http://caiji.dyttzyapi.com/api.php/provide/vod",
@@ -105,7 +95,7 @@
    "changeable": 1
   },
   {
-   "key": "cms09",
+   "key": "cms08",
    "name": "影视 · 金鹰",
    "type": 1,
    "api": "http://jyzyapi.com/provide/vod/from/jinyingm3u8/",
@@ -115,7 +105,7 @@
    "changeable": 1
   },
   {
-   "key": "cms10",
+   "key": "cms09",
    "name": "影视 · 茅台",
    "type": 1,
    "api": "https://mtzy.me/api.php/provide/vod/",
@@ -125,7 +115,7 @@
    "changeable": 1
   },
   {
-   "key": "cms11",
+   "key": "cms10",
    "name": "影视 · 极速",
    "type": 1,
    "api": "https://jszyapi.com/api.php/provide/vod/",
@@ -135,7 +125,7 @@
    "changeable": 1
   },
   {
-   "key": "cms12",
+   "key": "cms11",
    "name": "影视 · 玉兔",
    "type": 1,
    "api": "https://apiyutu.com/api.php/provide/vod/",
@@ -145,7 +135,7 @@
    "changeable": 1
   },
   {
-   "key": "js13",
+   "key": "js12",
    "name": "官源 • 优酷",
    "type": 3,
    "api": "https://ghfast.top/https://raw.githubusercontent.com/a5242033/TVBoxOSC/master/config/assets/lib/drpy2.min.js",
