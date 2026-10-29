@@ -260,6 +260,30 @@ jobs:
           open(p, 'w', encoding='utf-8').write(s)
           print('dirty filter patched')
           PYEOF
+          echo 'HomeActivity: 左上角站名可点击切换站点'
+          python3 - <<'PYEOF'
+          import sys
+          p = 'app/src/main/java/com/github/tvbox/osc/ui/activity/HomeActivity.java'
+          s = open(p, encoding='utf-8').read()
+          if 'TAP_SWITCH' in s:
+              print('already patched'); sys.exit(0)
+          old = '        this.tvName = findViewById(R.id.tvName);\n'
+          if old not in s:
+              print('TVNAME-ANCHOR-MISS'); sys.exit(1)
+          add = (
+              old +
+              '        // TAP_SWITCH: 左上角站名可点/可按，直接弹出站点切换\n' +
+              '        try {\n' +
+              '            this.tvName.setClickable(true);\n' +
+              '            this.tvName.setFocusable(true);\n' +
+              '            this.tvName.setOnClickListener(new View.OnClickListener() {\n' +
+              '                public void onClick(View v) { showSiteSwitch(); }\n' +
+              '            });\n' +
+              '        } catch (Throwable ignored) {}\n')
+          s = s.replace(old, add, 1)
+          open(p, 'w', encoding='utf-8').write(s)
+          print('tap switch patched')
+          PYEOF
           echo 'SourceViewModel: 分类(sort)结果落盘，冷启动直接用上次的分类立即出墙'
           python3 - <<'PYEOF'
           import sys
