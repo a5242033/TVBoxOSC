@@ -1,0 +1,21 @@
+{
+ "name": "电视简单化 多仓",
+ "urls": [
+  {
+   "name": "主仓（17站·推荐）",
+   "url": "https://ghfast.top/https://raw.githubusercontent.com/a5242033/TVBoxOSC/master/config/jsm.json"
+  },
+  {
+   "name": "精简仓（14 CMS·最快）",
+   "url": "https://ghfast.top/https://raw.githubusercontent.com/a5242033/TVBoxOSC/master/config/jsm-lite.json"
+  },
+  {
+   "name": "加强仓（73站·含第三方jar，可能弹广告）",
+   "url": "https://ghfast.top/https://raw.githubusercontent.com/a5242033/TVBoxOSC/master/config/jsm-vip.json"
+  },
+  {
+   "name": "第三方聚合（肥猫/饭太硬等，源常变）",
+   "url": "https://ghfast.top/https://raw.githubusercontent.com/Lightconer/tvbox-ysc-config/main/output/%E5%8D%95%E4%BB%93%E8%81%9A%E5%90%88.json"
+  }
+ ]
+}
