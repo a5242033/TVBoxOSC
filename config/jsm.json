@@ -25,17 +25,7 @@
  "danmaku": "http://127.0.0.1:9978/proxy?do=danmaku&name={name}&episode={episode}",
  "sites": [
   {
-   "key": "js01",
-   "name": "华谊 • 影视",
-   "type": 3,
-   "api": "./assets/py/华谊影视.py",
-   "searchable": 1,
-   "quickSearch": 1,
-   "changeable": 1,
-   "playerType": 1
-  },
-  {
-   "key": "cms02",
+   "key": "cms01",
    "name": "影视 · 虎牙",
    "type": 1,
    "api": "https://www.huyaapi.com/api.php/provide/vod/from/hym3u8",
@@ -43,6 +33,16 @@
    "quickSearch": 1,
    "filterable": 1,
    "changeable": 1
+  },
+  {
+   "key": "js02",
+   "name": "华谊 • 影视",
+   "type": 3,
+   "api": "https://ghfast.top/https://raw.githubusercontent.com/a5242033/TVBoxOSC/master/config/assets/py/huayi.py",
+   "searchable": 1,
+   "quickSearch": 1,
+   "changeable": 1,
+   "playerType": 1
   },
   {
    "key": "cms03",
@@ -218,8 +218,8 @@
    "key": "js20",
    "name": "官源 • 优酷",
    "type": 3,
-   "api": "./assets/lib/drpy2.min.js",
-   "ext": "./assets/js/优酷.js",
+   "api": "https://ghfast.top/https://raw.githubusercontent.com/a5242033/TVBoxOSC/master/config/assets/lib/drpy2.min.js",
+   "ext": "https://ghfast.top/https://raw.githubusercontent.com/a5242033/TVBoxOSC/master/config/assets/js/youku.js",
    "searchable": 1,
    "quickSearch": 1,
    "changeable": 1,
@@ -229,8 +229,8 @@
    "key": "js21",
    "name": "茶杯狐 • cupfox.in",
    "type": 3,
-   "api": "./assets/lib/drpy2.min.js",
-   "ext": "./assets/js/茶杯狐.js",
+   "api": "https://ghfast.top/https://raw.githubusercontent.com/a5242033/TVBoxOSC/master/config/assets/lib/drpy2.min.js",
+   "ext": "https://ghfast.top/https://raw.githubusercontent.com/a5242033/TVBoxOSC/master/config/assets/js/cupfox.js",
    "searchable": 1,
    "quickSearch": 1,
    "changeable": 1,
