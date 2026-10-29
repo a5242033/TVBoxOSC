@@ -33,6 +33,9 @@ DROP_AFTER = 3        # 连续失败几次才剔除
 MIN_CMS = 12          # 存活站下限：低于此数就回补，避免首页被削空
 DEFAULT_SITE = '影视 · 虎牙'  # 首页默认站：封面 6/6 可达、片库 2025+、199/199 直链
 
+# 首页之后要露脸的非 CMS 站（"最新影视"入口），不能被每日排序挤到最后
+EARLY_NAMES = {'官源 • 优酷'}
+
 # 国内实测三级全通、但 GitHub runner（境外）经常连不上的站：
 # 阈值放宽到 DROP_AFTER * 3，防止「境外 runner 判死、国内其实好好的」被误杀。
 PROTECTED = {
@@ -263,7 +266,8 @@ def main():
         s.pop('_lat', None)
         s['key'] = 'cms%02d' % i
 
-    cfg['sites'] = keep + others
+    cfg['sites'] = keep[:1] + [s for s in others if s.get('name') in EARLY_NAMES] \
+        + keep[1:] + [s for s in others if s.get('name') not in EARLY_NAMES]
     io.open(CFG, 'w', encoding='utf-8', newline='\n').write(
         json.dumps(cfg, ensure_ascii=False, indent=1))
     io.open(STATS, 'w', encoding='utf-8', newline='\n').write(
