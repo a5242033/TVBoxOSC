@@ -35,7 +35,157 @@
    "changeable": 1
   },
   {
-   "key": "js02",
+   "key": "cms02",
+   "name": "影视 · 创享",
+   "type": 1,
+   "api": "https://ys.cxkjg.cn/api/provide/vod/",
+   "searchable": 1,
+   "quickSearch": 1,
+   "filterable": 1,
+   "changeable": 1
+  },
+  {
+   "key": "cms03",
+   "name": "影视 · 暴風",
+   "type": 1,
+   "api": "https://bfzyapi.com/api.php/provide/vod/",
+   "searchable": 1,
+   "quickSearch": 1,
+   "filterable": 1,
+   "changeable": 1
+  },
+  {
+   "key": "cms04",
+   "name": "影视 · 360",
+   "type": 1,
+   "api": "https://360zy.com/api.php/provide/vod/",
+   "searchable": 1,
+   "quickSearch": 1,
+   "filterable": 1,
+   "changeable": 1
+  },
+  {
+   "key": "cms05",
+   "name": "影视 · 天涯",
+   "type": 1,
+   "api": "http://tyyszy.com/api.php/provide/vod",
+   "searchable": 0,
+   "quickSearch": 0,
+   "filterable": 1,
+   "changeable": 1
+  },
+  {
+   "key": "cms06",
+   "name": "影视 · 豆瓣",
+   "type": 1,
+   "api": "https://caiji.dbzy5.com/api.php/provide/vod/",
+   "searchable": 0,
+   "quickSearch": 0,
+   "filterable": 1,
+   "changeable": 1
+  },
+  {
+   "key": "cms07",
+   "name": "影视 · 非凡影视",
+   "type": 1,
+   "api": "http://ffzy5.tv/api.php/provide/vod/",
+   "searchable": 1,
+   "quickSearch": 1,
+   "filterable": 1,
+   "changeable": 1
+  },
+  {
+   "key": "cms08",
+   "name": "影视 · 电影天堂",
+   "type": 1,
+   "api": "http://caiji.dyttzyapi.com/api.php/provide/vod",
+   "searchable": 1,
+   "quickSearch": 1,
+   "filterable": 1,
+   "changeable": 1
+  },
+  {
+   "key": "cms09",
+   "name": "影视 · 新浪",
+   "type": 1,
+   "api": "http://api.xinlangapi.com/xinlangapi.php/provide/vod/",
+   "searchable": 1,
+   "quickSearch": 1,
+   "filterable": 1,
+   "changeable": 1
+  },
+  {
+   "key": "cms10",
+   "name": "影视 · 火狐",
+   "type": 1,
+   "api": "https://hhzyapi.com/api.php/provide/vod/",
+   "searchable": 1,
+   "quickSearch": 1,
+   "filterable": 1,
+   "changeable": 1
+  },
+  {
+   "key": "cms11",
+   "name": "影视 · 金鹰",
+   "type": 1,
+   "api": "https://jyzyapi.com/api.php/provide/vod/",
+   "searchable": 1,
+   "quickSearch": 1,
+   "filterable": 1,
+   "changeable": 1
+  },
+  {
+   "key": "cms12",
+   "name": "影视 · 茅台",
+   "type": 1,
+   "api": "https://mtzy.me/api.php/provide/vod/",
+   "searchable": 0,
+   "quickSearch": 0,
+   "filterable": 1,
+   "changeable": 1
+  },
+  {
+   "key": "cms13",
+   "name": "影视 · 速播",
+   "type": 1,
+   "api": "https://subocaiji.com/api.php/provide/vod/",
+   "searchable": 1,
+   "quickSearch": 1,
+   "filterable": 1,
+   "changeable": 1
+  },
+  {
+   "key": "cms14",
+   "name": "影视 · 建安",
+   "type": 1,
+   "api": "http://154.219.117.232:9981/jacloudapi.php/provide/vod",
+   "searchable": 1,
+   "quickSearch": 1,
+   "filterable": 1,
+   "changeable": 1
+  },
+  {
+   "key": "cms15",
+   "name": "影视 · 极速",
+   "type": 1,
+   "api": "https://jszyapi.com/api.php/provide/vod/",
+   "searchable": 1,
+   "quickSearch": 1,
+   "filterable": 1,
+   "changeable": 1
+  },
+  {
+   "key": "cms16",
+   "name": "影视 · 玉兔",
+   "type": 1,
+   "api": "https://apiyutu.com/api.php/provide/vod/",
+   "searchable": 1,
+   "quickSearch": 1,
+   "filterable": 1,
+   "changeable": 1
+  },
+  {
+   "key": "js17",
    "name": "官源 • 优酷",
    "type": 3,
    "api": "https://qist.wyfc.qzz.io/lib/drpy2.min.js",
@@ -46,137 +196,7 @@
    "playerType": 1
   },
   {
-   "key": "cms03",
-   "name": "影视 · 创享",
-   "type": 1,
-   "api": "https://ys.cxkjg.cn/api/provide/vod/",
-   "searchable": 1,
-   "quickSearch": 1,
-   "filterable": 1,
-   "changeable": 1
-  },
-  {
-   "key": "cms04",
-   "name": "影视 · 暴風",
-   "type": 1,
-   "api": "https://bfzyapi.com/api.php/provide/vod/",
-   "searchable": 1,
-   "quickSearch": 1,
-   "filterable": 1,
-   "changeable": 1
-  },
-  {
-   "key": "cms05",
-   "name": "影视 · 360",
-   "type": 1,
-   "api": "https://360zy.com/api.php/provide/vod/",
-   "searchable": 1,
-   "quickSearch": 1,
-   "filterable": 1,
-   "changeable": 1
-  },
-  {
-   "key": "cms06",
-   "name": "影视 · 天涯",
-   "type": 1,
-   "api": "http://tyyszy.com/api.php/provide/vod",
-   "searchable": 0,
-   "quickSearch": 0,
-   "filterable": 1,
-   "changeable": 1
-  },
-  {
-   "key": "cms07",
-   "name": "影视 · 豆瓣",
-   "type": 1,
-   "api": "https://caiji.dbzy5.com/api.php/provide/vod/",
-   "searchable": 0,
-   "quickSearch": 0,
-   "filterable": 1,
-   "changeable": 1
-  },
-  {
-   "key": "cms08",
-   "name": "影视 · 非凡影视",
-   "type": 1,
-   "api": "http://ffzy5.tv/api.php/provide/vod/",
-   "searchable": 1,
-   "quickSearch": 1,
-   "filterable": 1,
-   "changeable": 1
-  },
-  {
-   "key": "cms09",
-   "name": "影视 · 电影天堂",
-   "type": 1,
-   "api": "http://caiji.dyttzyapi.com/api.php/provide/vod",
-   "searchable": 1,
-   "quickSearch": 1,
-   "filterable": 1,
-   "changeable": 1
-  },
-  {
-   "key": "cms10",
-   "name": "影视 · 新浪",
-   "type": 1,
-   "api": "http://api.xinlangapi.com/xinlangapi.php/provide/vod/",
-   "searchable": 1,
-   "quickSearch": 1,
-   "filterable": 1,
-   "changeable": 1
-  },
-  {
-   "key": "cms11",
-   "name": "影视 · 火狐",
-   "type": 1,
-   "api": "https://hhzyapi.com/api.php/provide/vod/",
-   "searchable": 1,
-   "quickSearch": 1,
-   "filterable": 1,
-   "changeable": 1
-  },
-  {
-   "key": "cms12",
-   "name": "影视 · 金鹰",
-   "type": 1,
-   "api": "https://jyzyapi.com/api.php/provide/vod/",
-   "searchable": 1,
-   "quickSearch": 1,
-   "filterable": 1,
-   "changeable": 1
-  },
-  {
-   "key": "cms13",
-   "name": "影视 · 茅台",
-   "type": 1,
-   "api": "https://mtzy.me/api.php/provide/vod/",
-   "searchable": 0,
-   "quickSearch": 0,
-   "filterable": 1,
-   "changeable": 1
-  },
-  {
-   "key": "cms14",
-   "name": "影视 · 速播",
-   "type": 1,
-   "api": "https://subocaiji.com/api.php/provide/vod/",
-   "searchable": 1,
-   "quickSearch": 1,
-   "filterable": 1,
-   "changeable": 1
-  },
-  {
-   "key": "cms15",
-   "name": "影视 · 建安",
-   "type": 1,
-   "api": "http://154.219.117.232:9981/jacloudapi.php/provide/vod",
-   "searchable": 1,
-   "quickSearch": 1,
-   "filterable": 1,
-   "changeable": 1
-  },
-  {
-   "key": "js16",
+   "key": "js18",
    "name": "茶杯狐 • cupfox.in",
    "type": 3,
    "api": "https://qist.wyfc.qzz.io/lib/drpy2.min.js",
@@ -187,7 +207,7 @@
    "playerType": 1
   },
   {
-   "key": "js17",
+   "key": "js19",
    "name": "华谊 • 影视",
    "type": 3,
    "api": "https://qist.wyfc.qzz.io/py/华谊影视.py",
