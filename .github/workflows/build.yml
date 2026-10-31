@@ -320,7 +320,7 @@ jobs:
           open(p, 'w', encoding='utf-8').write(s)
           print('tap switch2 patched')
           PYEOF
-          echo '应用名与图标：电视简单化'
+          echo '应用名与图标：TVBox'
           for d in hdpi xhdpi xxhdpi xxxhdpi; do cp ../assets/icons/app_icon_$d.png app/src/main/res/drawable-$d/app_icon.png; done
           python3 - <<'PYEOF'
           import sys
@@ -331,7 +331,7 @@ jobs:
           old = '<string name="app_name">TVBox</string>'
           if old not in s:
               print('APPNAME-ANCHOR-MISS'); sys.exit(1)
-          s = s.replace(old, '<string name="app_name">电视简单化</string>', 1)
+          s = s.replace(old, '<string name="app_name">TVBox</string>', 1)  # 保持上游 TVBox，命中 spider.jar 白名单
           s = s.replace('<resources>', '<resources>\n    <!-- APP_NAME_ICON -->', 1)
           open(p, 'w', encoding='utf-8').write(s)
           print('app name patched')
